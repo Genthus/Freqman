@@ -1,7 +1,7 @@
 from aqt import mw
 col = mw.col
 from . import preferences as prefs
-import json
+from . import db
 
 def getCardsFromConfigNoteTypes():
     notes = []
@@ -10,21 +10,28 @@ def getCardsFromConfigNoteTypes():
     return notes
 
 def orderCards():
-    count = 1
+    config = prefs.getJsonConfig()
     cards = getCardsFromConfigNoteTypes()
-    configNoteMap = prefs.getJsonConfig()["filter"]
-    with open("./user_data/dicts/"+prefs.getJsonConfig()["freqDictFileName"]) as f:
+    configNoteMap = config["filter"]
+    with open("./user_data/dicts/"+config["freqDictFileName"]) as f:
         for card in cards:
             cardExp = card[configNoteMap[card.type]]
-            if cardExp in freqList:
-                if cardExp in db:
-                    # tag card as already known
+            dbExp =  db.getTermInDictDB(cardExp)
+            if dbExp is not ():
+                if db.checkIfTermInUserDB(cardExp):
+                    note = card.note()
+                    if config['tags']['known'] not in note.tags():
+                        note.tags().append(config['tags']['known'])
+                        col.update_note(note)
+                        card.ord = 100000
+                        col.update_card(card)
                 else:
-                    #if card not unseen, add to db
                     if card.ivl > 0:
-                        # add to db
+                        db.addTermToUserDB(cardExp)
                     else:
-                        card.ord = db.position
-            else:
-                # tag card as not in freq list
-            col.update_card(card)
+                        note = card.note()
+                        if config['tags']['ranked'] not in note.tags():
+                            note.tags().append(config['tags']['ranked'])
+                            col.update_note(note)
+                        card.org = dbExp[1]
+                        col.update_card(card)

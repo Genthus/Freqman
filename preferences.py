@@ -20,10 +20,14 @@ def getJsonConfig():
     return configData
 
 def defaultJson():
-    'freqDictFilename' : 'jpdb.json'
     return {
+        'setDict' : None,
+        'tags': {
+            'known': 'mbKnown',
+            'ranked': 'mbRanked'
+        },
         'filter':[
-            { 'type': 'Basic', 'field': 'Expression'},
+            { 'type': 'notBasic', 'field': 'Expression'},
         ],
     }
 
