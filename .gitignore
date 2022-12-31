@@ -1,0 +1,5 @@
+user_data
+**/__pycache__
+**/temp
+meta.json
+*.pyc
