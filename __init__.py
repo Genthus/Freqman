@@ -1,12 +1,12 @@
 from aqt import mw
 from aqt.utils import showInfo, qconnect
 from aqt.qt import *
-from .preferences import getJsonConfig
+from .preferences import getConfig
 from .ordering import orderCards
 from .window import openPrefs
 
 # startup
-getJsonConfig()
+getConfig()
 
 # create a new menu item, "test"
 reorder = QAction("Reorder Cards", mw)
@@ -16,7 +16,7 @@ qconnect(reorder.triggered, orderCards)
 qconnect(prefMenu.triggered, openPrefs)
 # and add it to the tools menu
 menuBar = mw.menuBar()
-mbMenu = menuBar.addMenu('&Morphboy')
+mbMenu = menuBar.addMenu('&Freqman')
 mbMenu.addAction(reorder)
 mbMenu.addAction(prefMenu)
 

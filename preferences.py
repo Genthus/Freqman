@@ -1,42 +1,35 @@
 from aqt import mw
-from os.path import exists
+import json
 
 configData = None
 
 def getPreferences():
-    addonsConfig = mw.addonManager.getConfig('morphboy')
+    addonsConfig = mw.addonManager.getConfig('Freqman')
     if addonsConfig == None or addonsConfig == {}:
         # No config yet in the the collection.
         addMissingJsonConfig()
+        addonsConfig = mw.addonManager.getConfig('Freqman')
     return addonsConfig
 
-def getJsonConfig():
+def getConfig() -> dict:
     global configData 
     if configData == None:
         configData = getPreferences()
     return configData
 
 def defaultJson():
-    return {
-        'setDict' : '',
-        'tags': {
-            'known': 'mbKnown',
-            'ranked': 'mbRanked'
-        },
-        'filter':[
-            { 'type': 'notBasic', 'field': 'Expression'},
-        ],
-    }
+    with open("config.json",'r') as f:
+        return json.load(f)
 
 def addMissingJsonConfig():
-    if not exists("config.json"):
-        with open("config.json",'w') as f:
-            f.write("{}")
-        mw.addonManager.writeConfig('morphboy',defaultJson())
-        return
-    current = getJsonConfig().copy()
+    current = getConfig().copy()
     default = defaultJson()
     for key, value in default.items():
         if key not in current:
             current[key] = value
-    mw.addonManager.writeConfig('morphboy',current)
+    mw.addonManager.writeConfig('Freqman',current)
+
+def updateConfig(newCfg):
+    mw.addonManager.writeConfig('Freqman',newCfg)
+    global configData
+    configData = newCfg

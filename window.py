@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from aqt import mw
 from aqt.qt import *
+from .preferences import getConfig, updateConfig
 
 
 class PrefWindow(QDialog):
@@ -11,7 +12,7 @@ class PrefWindow(QDialog):
 
         self.setModal(True)
         self.rowGui = []
-        self.resize(500,500)
+        self.resize(700,500)
 
         self.setWindowTitle("Freqman Preferences")
         self.vbox = QVBoxLayout(self)
@@ -20,18 +21,157 @@ class PrefWindow(QDialog):
 
         self.createNoteFilterTab()
         self.createDictSelectTab()
+        self.createButtons()
+
+        self.setLayout(self.vbox)
 
     def createNoteFilterTab(self):
         self.frame1 = QWidget()
         self.tabWidget.addTab(self.frame1,"Note Filter")
         vbox = QVBoxLayout()
         self.frame1.setLayout(vbox)
+        vbox.setContentsMargins(0,20,0,0)
+
+        self.tableModel = QStandardItemModel(0, 3)
+        self.tableView = QTableView()
+        self.tableView.setModel(self.tableModel)
+        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.tableView.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tableModel.setHeaderData(0,Qt.Horizontal, "Note Type")
+        self.tableModel.setHeaderData(1,Qt.Horizontal, "Field")
+        self.tableModel.setHeaderData(2,Qt.Horizontal, "Modify")
+
+        rowData = getConfig()['filter']
+        self.tableModel.setRowCount(len(rowData))
+        self.rowGui = []
+        for i,row in enumerate(rowData):
+            self.setTableRow(i,row)
+
+        label = QLabel(
+            "Select the card types you want to include."
+            +"\nField determines which part of the card will be looked for."
+            +"\nIf Modify is off, the cards will not have their order modified."
+        )
+        label.setWordWrap(True)
+        vbox.addWidget(label)
+        vbox.addSpacing(20)
+        vbox.addWidget(self.tableView)
+
+        hbox = QHBoxLayout()
+        vbox.addLayout(hbox)
+
+        self.clone = self.mkBtn("Clone", self.onClone, hbox)
+        self.delete = self.mkBtn("Delete", self.onDelete, hbox)
 
     def createDictSelectTab(self):
         self.frame2 = QWidget()
         self.tabWidget.addTab(self.frame2,"Dictionary Selection")
         vbox = QVBoxLayout()
         self.frame2.setLayout(vbox)
+
+
+    def createButtons(self):
+        hbox = QHBoxLayout()
+        self.vbox.addLayout(hbox)
+        buttonCancel = QPushButton("&Cancel")
+        hbox.addWidget(buttonCancel, 1, Qt.AlignRight)
+        buttonCancel.setMaximumWidth(150)
+        buttonCancel.clicked.connect(self.onCancel)
+
+        buttonOkay = QPushButton("&Apply")
+        hbox.addWidget(buttonOkay)
+        buttonOkay.setMaximumWidth(150)
+        buttonOkay.clicked.connect(self.onOkay)
+
+    def onCancel(self):
+        self.close()
+
+    def readConfigFromGui(self):
+        cfg = {}
+        cfg['filter'] = []
+        for _, rowGui in enumerate(self.rowGui):
+            cfg['filter'].append(self.rowGuiToFilter(rowGui))
+
+        return cfg
+
+    def rowGuiToFilter(self, row_gui):
+        filter = {}
+
+        filter['type'] = row_gui['modelComboBox'].currentText()
+        filter['field'] = [
+            x for x in row_gui['fieldsEntry'].text().split(', ') if x]
+        filter['modify'] = row_gui['modifyCheckBox'].checkState() != Qt.Unchecked
+
+        return filter
+
+    def onOkay(self):
+        updateConfig(self.readConfigFromGui())
+        self.close()
+
+    def getCurrentRow(self):
+        indexes = self.tableView.selectedIndexes()
+        return 0 if len(indexes) == 0 else indexes[0].row()
+
+    def appendRowData(self, data):
+        self.tableModel.setRowCount(len(self.rowGui) + 1)
+        self.setTableRow(len(self.rowGui), data)
+
+    def rowIndexToFilter(self, rowIdx):
+        return self.rowGuiToFilter(self.rowGui[rowIdx])
+
+    def onDelete(self):
+        # do not allow to delete the last row
+        if len(self.rowGui) == 1:
+            return
+        row_to_delete = self.getCurrentRow()
+        self.tableModel.removeRow(row_to_delete)
+        self.rowGui.pop(row_to_delete)
+
+    def onClone(self):
+        row = self.getCurrentRow()
+        data = self.rowIndexToFilter(row)
+        self.appendRowData(data)
+
+    def setTableRow(self, rowIndex, data):
+        assert rowIndex >= 0, "Bruh, negative numbs setting rows"
+        assert len(
+            self.rowGui) >= rowIndex, "Row can't be appended because it would leave an empty row"
+
+        rowGui = {}
+
+        modelComboBox = QComboBox()
+        active = 0
+        for i, model in enumerate(mw.col.models.all_names_and_ids()):
+            if model.name == data['type']:
+                active = i 
+            modelComboBox.addItem(model.name)
+        modelComboBox.setCurrentIndex(active)
+
+        modifyItem = QStandardItem()
+        modifyItem.setCheckable(True)
+        modifyItem.setCheckState(Qt.Checked if data.get('modify', True) else Qt.Unchecked)
+
+        rowGui['modelComboBox'] = modelComboBox
+        rowGui['fieldsEntry'] = QLineEdit(', '.join(data['field']))
+        rowGui['modifyCheckBox'] = modifyItem
+
+        def setColumn(col, widget):
+            self.tableView.setIndexWidget(self.tableModel.index(rowIndex, col), widget)
+
+        setColumn(0, rowGui['modelComboBox'])
+        setColumn(1, rowGui['fieldsEntry'])
+        self.tableModel.setItem(rowIndex, 2, modifyItem)
+
+        if len(self.rowGui) == rowIndex:
+            self.rowGui.append(rowGui)
+        else:
+            self.rowGui[rowIndex] = rowGui
+
+    def mkBtn(self, txt, f, parent):
+        b = QPushButton(txt)
+        b.clicked.connect(f)
+        parent.addWidget(b)
 
 def openPrefs():
     mw.fm =  PrefWindow(mw)

@@ -4,7 +4,7 @@ from . import db
 
 def orderCards():
     col = mw.col
-    config = prefs.getJsonConfig()
+    config = prefs.getConfig()
     cards = []
     for noteType in config["filter"]:
         cards += col.find_cards("note: "+noteType["type"])
