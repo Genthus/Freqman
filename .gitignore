@@ -1,5 +1,5 @@
 user_data
-**/__pycache__
-**/temp
+temp/
+.gitignore
+__pycache__
 meta.json
-*.pyc
