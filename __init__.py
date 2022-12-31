@@ -1,24 +1,20 @@
-# import the main window object (mw) from aqt
 from aqt import mw
-# import the "show info" tool from utils.py
 from aqt.utils import showInfo, qconnect
-# import all of the Qt GUI library
 from aqt.qt import *
+from .preferences import getJsonConfig
+from .ordering import orderCards
 
-# We're going to add a menu item below. First we want to create a function to
-# be called when the menu item is activated.
-
-def testFunction() -> None:
-    # get the number of cards in the current collection, which is stored in
-    # the main window
-    cardCount = mw.col.cardCount()
-    # show a message box
-    showInfo("Card count: %d" % cardCount)
+# startup
+getJsonConfig()
 
 # create a new menu item, "test"
-action = QAction("test", mw)
+reorder = QAction("Reorder Cards", mw)
+prefMenu = QAction("Preferences", mw)
 # set it to call testFunction when it's clicked
-qconnect(action.triggered, testFunction)
+qconnect(reorder.triggered, orderCards)
 # and add it to the tools menu
-mw.form.menuTools.addAction(action)
+menuBar = mw.menuBar()
+mbMenu = menuBar.addMenu('&Morphboy')
+mbMenu.addAction(reorder)
+mbMenu.addAction(prefMenu)
 

@@ -36,7 +36,7 @@ def verifyUserDatabase():
     if 'known' not in tables:
         print("Error in userDB")
         return False
-    elif tables is ():
+    elif tables == ():
         # TODO add error check here
         createUserDatabase()
     return True
@@ -57,7 +57,7 @@ def importYomichanFreqDict(path):
         data = json.load(f)
         dictData['title'] = data['title']
     tableInDB = getDictDB().execute("SELECT tableName FROM sqlite_master WHERE type='table' AND tableName='?'",dictData['title'])
-    if tableInDB.fetchall() is not None:
+    if tableInDB.fetchall() != None:
         print("table already in DB")
         # throw error
         return False
@@ -80,9 +80,9 @@ def importYomichanFreqDict(path):
         return False
     if terms[0][1] != "freq":
         return False
-    if type(terms[0][2]) is int:
+    if type(terms[0][2]) == int:
         getDictDB().executemany("INSERT INTO ? VALUES (?,?)",(dictData['title'],terms[0],terms[2]))
-    elif type(terms[0][2]) is dict:
+    elif type(terms[0][2]) == dict:
         getDictDB().executemany("INSERT INTO ? VALUES (?,?)",(dictData['title'],terms[0],terms[2]['frequency']))
 
     shutil.rmtree("./temp")
@@ -93,7 +93,7 @@ def verifyDictionaryDatabase():
     if 'dicts' not in tables:
         print("Error in DictDB")
         return False
-    elif tables is ():
+    elif tables == ():
         # TODO add an error check here
         createDictDatabase()
     return True
@@ -103,12 +103,12 @@ def addTermToUserDB(s):
 
 def getTermInDictDB(s) -> tuple:
     res = getDictDB().execute("SELECT term, value FROM ? WHERE term='?'",(prefs.getJsonConfig()['setDict'],s))
-    if res.fetchone() is None:
+    if res.fetchone() == None:
         return ()
     return res.fetchone()
     
 def checkIfTermInUserDB(s) -> bool:
     res = getUserDB().execute("SELECT term FROM known WHERE term='?'",s)
-    if res.fetchone() is None:
+    if res.fetchone() == None:
         return False
     return True 
