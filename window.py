@@ -3,7 +3,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from aqt import mw
 from aqt.qt import *
-from .preferences import getConfig, updateConfig
+from .preferences import getPrefs, updatePrefs
+from .db import importYomichanFreqDict, getDicts
 
 
 class PrefWindow(QDialog):
@@ -11,8 +12,10 @@ class PrefWindow(QDialog):
         super(PrefWindow,self).__init__(parent)
 
         self.setModal(True)
-        self.rowGui = []
         self.resize(700,500)
+
+        self.rowGui = []
+        self.dictPath = QLabel("Not selected")
 
         self.setWindowTitle("Freqman Preferences")
         self.vbox = QVBoxLayout(self)
@@ -42,7 +45,7 @@ class PrefWindow(QDialog):
         self.tableModel.setHeaderData(1,Qt.Horizontal, "Field")
         self.tableModel.setHeaderData(2,Qt.Horizontal, "Modify")
 
-        rowData = getConfig()['filter']
+        rowData = getPrefs()['filter']
         self.tableModel.setRowCount(len(rowData))
         self.rowGui = []
         for i,row in enumerate(rowData):
@@ -69,7 +72,50 @@ class PrefWindow(QDialog):
         self.tabWidget.addTab(self.frame2,"Dictionary Selection")
         vbox = QVBoxLayout()
         self.frame2.setLayout(vbox)
+        vbox.setContentsMargins(0,20,0,0)
 
+        dictLabel = QLabel("Current Dictionary")
+        vbox.addWidget(dictLabel)
+        self.dictComboBox = QComboBox()
+        self.getDictComboBox()
+        vbox.addWidget(self.dictComboBox)
+
+        buttonSearchDict = QPushButton("&Select")
+        vbox.addWidget(buttonSearchDict, 1, Qt.AlignLeft)
+        buttonSearchDict.setMaximumWidth(150)
+        buttonSearchDict.clicked.connect(self.getFile)
+        vbox.addWidget(self.dictPath)
+        buttonImportDict = QPushButton("&Import")
+        vbox.addWidget(buttonImportDict,1,Qt.AlignLeft)
+        buttonImportDict.setMaximumWidth(150)
+        buttonImportDict.clicked.connect(self.importDict)
+
+    def getDictComboBox(self):
+        assert self.dictComboBox
+        self.dictComboBox.clear()
+        self.dictComboBox.addItem("None")
+        active = 0
+        for i,dict in enumerate(getDicts()):
+            if dict[0] == getPrefs()['setDict']:
+                active = i + 1
+            self.dictComboBox.addItem(dict[0])
+        self.dictComboBox.setCurrentIndex(active)
+
+    def getFile(self):
+        fname = QFileDialog.getOpenFileName(self, 'Open file', '~',"Zip files (*.zip)")
+        self.dictPath.setText(fname[0])
+
+    def importDict(self):
+        if self.dictPath.text() != "Not selected":
+            res = importYomichanFreqDict(self.dictPath.text())
+            if "Success" not in res:
+                err = QMessageBox(self)
+                err.setText("Error: " + res)
+                err.exec()
+            err = QMessageBox(self)
+            err.setText(res)
+            err.exec()
+            self.getDictComboBox()
 
     def createButtons(self):
         hbox = QHBoxLayout()
@@ -92,7 +138,7 @@ class PrefWindow(QDialog):
         cfg['filter'] = []
         for _, rowGui in enumerate(self.rowGui):
             cfg['filter'].append(self.rowGuiToFilter(rowGui))
-
+        cfg['setDict'] = self.dictComboBox.currentText()
         return cfg
 
     def rowGuiToFilter(self, row_gui):
@@ -106,7 +152,7 @@ class PrefWindow(QDialog):
         return filter
 
     def onOkay(self):
-        updateConfig(self.readConfigFromGui())
+        updatePrefs(self.readConfigFromGui())
         self.close()
 
     def getCurrentRow(self):

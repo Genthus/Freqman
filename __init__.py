@@ -1,22 +1,30 @@
 from aqt import mw
-from aqt.utils import showInfo, qconnect
+from aqt import gui_hooks
+from aqt.utils import qconnect
 from aqt.qt import *
-from .preferences import getConfig
+from .preferences import prefInit
 from .ordering import orderCards
 from .window import openPrefs
+from .db import dbInit, dbClose
+from .config import configInit
 
-# startup
-getConfig()
 
-# create a new menu item, "test"
 reorder = QAction("Reorder Cards", mw)
 prefMenu = QAction("Preferences", mw)
-# set it to call testFunction when it's clicked
+
 qconnect(reorder.triggered, orderCards)
 qconnect(prefMenu.triggered, openPrefs)
-# and add it to the tools menu
+
 menuBar = mw.menuBar()
 mbMenu = menuBar.addMenu('&Freqman')
 mbMenu.addAction(reorder)
 mbMenu.addAction(prefMenu)
 
+# startup
+def addonInit():
+    configInit()
+    prefInit()
+    dbInit()
+
+gui_hooks.profile_did_open.append(addonInit)
+gui_hooks.profile_will_close.append(dbClose)

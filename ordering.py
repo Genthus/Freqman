@@ -1,11 +1,13 @@
 from aqt import mw
-from . import preferences as prefs
+from .preferences import getPrefs
 from . import db
 
 def orderCards():
     col = mw.col
-    config = prefs.getConfig()
+    config = getPrefs()
     cards = []
+    if config['setDict'] == "None":
+        return
     for noteType in config["filter"]:
         cards += col.find_cards("note: "+noteType["type"])
     configNoteMap = config["filter"]
