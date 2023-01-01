@@ -1,34 +1,69 @@
 from aqt import mw
 from .preferences import getPrefs
-from . import db
+from .db import *
 
-def orderCards():
-    col = mw.col
-    config = getPrefs()
-    cards = []
-    if config['setDict'] == "None":
-        return
-    for noteType in config["filter"]:
-        cards += col.find_cards("note: "+noteType["type"])
-    configNoteMap = config["filter"]
-    for card in cards:
-        cardExp = card[configNoteMap[card.type]]
-        dbExp =  db.getTermInDictDB(cardExp)
-        if dbExp != ():
-            if db.checkIfTermInUserDB(cardExp):
-                note = card.note()
-                if config['tags']['known'] not in note.tags():
-                    note.tags().append(config['tags']['known'])
-                    col.update_note(note)
-                    card.ord = 100000
-                    col.update_card(card)
-            else:
-                if card.ivl > 0:
-                    db.addTermToUserDB(cardExp)
-                else:
-                    note = card.note()
-                    if config['tags']['ranked'] not in note.tags():
-                        note.tags().append(config['tags']['ranked'])
-                        col.update_note(note)
-                    card.org = dbExp[1]
-                    col.update_card(card)
+def addCardsToDB():
+    cardsToAdd = []
+    for noteType in getPrefs()['filter']:
+        cards = mw.col.find_cards("note: " + noteType['type'] + "-tag:" + getPrefs()['tags']['tracked'])
+        for id in cards:
+            card = mw.col.get_card(id)
+            if card == None:
+                break
+            note = card.note()
+            expression = note[noteType['field']]
+            cardsToAdd.append([id,expression])
+            note.add_tag(getPrefs()['tags']['tracked'])
+            mw.col.update_note(note)
+    addCardsToUserDB(cardsToAdd)
+
+def markCardsAsKnown():
+    known = mw.col.find_cards("tag:"+getPrefs()['tags']['tracked'] + " -is:new")
+    for id in known:
+        card = mw.col.get_gard(id)
+        card.note.add_tag(getPrefs()['tags']['known'])
+        mw.col.update_note(card.note)
+    addKnownCards(known)
+
+def pushKnownNewCardsBack():
+    known = getKnownCards()
+    for cardType in getPrefs()['filter']:
+        new = mw.col.find_cards("tag:"+getPrefs()['tags']['tracked'] 
+                                    + " is:new" 
+                                    + " -tag:"+getPrefs()['tags']['known']
+                                    + " note:" cardType['type'])
+        for id in new:
+            card = mw.col.get_card(id)
+            if card == None:
+                break
+            expression = card.note[cardType['field']
+            if expression in known:
+                card.note.add_tag(getPrefs()['tags']['known'])
+                card.ord = 100000
+                mw.col.update_card(card)
+                mw.col.update_note(card.note)
+
+def orderCardsInDB():
+    tracked = getCardsWithFreq()
+    for (id,freq) in tracked:
+        card = mw.col.get_card(id)
+        card.ord = freq
+        card.note.add_tag(getPrefs()['tags']['sorted'])
+        mw.col.update_note(card.note)
+    addSortedCards(mw.col.find_cards("tag:"+getPrefs()['tags']['sorted']))
+
+def cleanUpdatedCards():
+    updated = getUpdatedCards()
+    for id in updated:
+        card = mw.col.get_card(id)
+        if card == None:
+            break
+        for tag in getPrefs()['tags'].values
+            card.note.remove_tag(tag)
+
+def recalculate():
+    cleanUpdatedCards()
+    addCardsToDB()
+    orderCardsInDB()
+    markCardsAsKnown()
+    pushKnownNewCardsBack()

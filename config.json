@@ -1,5 +1,5 @@
 {
     "filter": [{ "field": "Expression", "type": "notBasic", "modify": false }],
     "setDict": "None",
-    "tags": { "known": "mbKnown", "ranked": "mbRanked" }
+    "tags": { "known": "fmKnown", "sorted": "fmSorted", "tracked": "fmTracked" }
 }

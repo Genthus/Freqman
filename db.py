@@ -43,8 +43,27 @@ def getDictDBCon():
 
 def createUserDatabase():
     schema = """
-    CREATE TABLE IF NOT EXISTS known(
+    CREATE TABLE IF NOT EXISTS cards(
+        card INTEGER UNIQUE,
         term TEXT
+    )
+    """
+    getUserDB().execute(schema)
+    schema = """
+    CREATE TABLE IF NOT EXISTS known(
+        term TEXT UNIQUE
+    )
+    """
+    getUserDB().execute(schema)
+    schema = """
+    CREATE TABLE IF NOT EXISTS sorted(
+        card INTEGER UNIQUE,
+    )
+    """
+    getUserDB().execute(schema)
+    schema = """
+    CREATE TABLE IF NOT EXISTS updated(
+        card INTEGER UNIQUE,
     )
     """
     getUserDB().execute(schema)
@@ -70,7 +89,7 @@ def createDictDatabase():
     getDictDB().execute(schema)
     schema = """
     CREATE TABLE IF NOT EXISTS dicts(
-        name TEXT
+        name TEXT UNIQUE
     )
     """
     getDictDB().execute(schema)
@@ -132,8 +151,37 @@ def getDicts():
     res = getDictDB().execute("SELECT name FROM dicts")
     return res.fetchall() 
 
-def addTermToUserDB(s):
-    getUserDB().execute("INSERT INTO known VALUES (?)",(s,))
+def addCardsToUserDB(cards):
+    getUserDB().executemany("INSERT INTO cards VALUES (?,?)",cards)
+    getUserDBCon().commit()
+
+def addSortedCards(cards):
+    getUserDB().executemany("INSERT INTO sorted VALUES (?)",cards)
+    getUserDBCon().commit()
+
+def addKnownCards(cards):
+    getUserDB().execute("""
+    TRUNCATE TABLE known;
+    INSERT INTO known VALUES (
+        SELECT term
+        FROM cards
+        WHERE card IN ?
+    )
+    """,cards)
+    getUserDBCon().commit()
+
+def getKnownCards():
+    res = getUserDB().execute("SELECT term FROM known")
+    return res.fetchall()
+
+def addCardToUpdate(c):
+    for cardType in getPrefs()['filter']:
+        if c.type == cardType['type']:
+            getUserDB().execute("INSERT INTO updated VALUES (?)",(c,))
+
+def getUpdatedCards():
+    res = getUserDB().execute("SELECT card FROM updated")
+    return res.fetchall()
 
 def getTermInDictDB(s) -> tuple:
     dictName = getPrefs()['setDict']
@@ -143,6 +191,22 @@ def getTermInDictDB(s) -> tuple:
     if res.fetchone() == None:
         return ()
     return res.fetchone()
+
+def getCardsWithFreq():
+    getUserDB().execute("ATTACH DATABASE 'dict.db' AS source")
+    res = getUserDB().execute("""
+    SELECT card, freq
+    FROM (
+        SELECT card, freq
+        FROM cards 
+        LEFT JOIN source.terms
+        ON cards.term = source.terms.term
+        WHERE dict = ?
+    )
+    WHERE card NOT IN (SELECT card FROM sorted)
+    """,getPrefs()['setDict'])
+    getUserDB().execute("DETACH DATABASE source")
+    return res.fetchall()
     
 def checkIfTermInUserDB(s) -> bool:
     res = getUserDB().execute("SELECT term FROM known WHERE term='?'",s)
