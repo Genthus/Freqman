@@ -1,5 +1,4 @@
 from aqt import mw
-import json
 
 prefData = None
 
@@ -10,31 +9,48 @@ def prefInit():
 
 def getPreferences():
     addonsConfig = mw.addonManager.getConfig('Freqman')
-    if addonsConfig == None or addonsConfig == {}:
-        # No config yet in the the collection.
-        addMissingJsonConfig()
-        addonsConfig = mw.addonManager.getConfig('Freqman')
+    addMissingJsonConfig()
     return addonsConfig
 
-def getPrefs() -> dict:
+def getPrefs():
     global prefData 
     if prefData == None:
         prefData = getPreferences()
     return prefData
 
 def defaultJson():
-    with open("config.json",'r') as f:
-        return json.load(f)
+    return {
+        "filter": [{ "field": "Expression", "type": "notBasic", "modify": False }],
+        "setDict": "None",
+        "dictStyle": "Rank",
+        "tags": { "known": "fmKnown", "sorted": "fmSorted", "tracked": "fmTracked" },
+        "general": {
+            "onSync" : { "text": "Run with sync", "value": False },
+            "ignoreSusLeech" : { "text": "Ignore suspened leeches", "value": False },
+        }
+    }
 
 def addMissingJsonConfig():
-    current = getPrefs().copy()
+    current = {}
+    global prefData
+    if prefData != None:
+        current = getPrefs().copy()
     default = defaultJson()
     for key, value in default.items():
         if key not in current:
             current[key] = value
     mw.addonManager.writeConfig('Freqman',current)
+    prefData = current
 
 def updatePrefs(newCfg):
-    mw.addonManager.writeConfig('Freqman',newCfg)
+    current = getPrefs().copy()
+    if current == None:
+        getPreferences()
+    for k, v in newCfg.items():
+        current[k] = v
+    mw.addonManager.writeConfig('Freqman',current)
     global prefData
-    prefData = newCfg
+    prefData = current
+
+def resetPrefs():
+    updatePrefs(defaultJson())

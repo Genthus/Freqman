@@ -3,37 +3,67 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from aqt import mw
 from aqt.qt import *
-from .preferences import getPrefs, updatePrefs
-from .db import importYomichanFreqDict, getDicts
-
+from .preferences import getPrefs, updatePrefs, resetPrefs
+from .db import importYomichanFreqDict, getDicts, rmDictFromDB
 
 class PrefWindow(QDialog):
     def __init__(self,parent=None):
         super(PrefWindow,self).__init__(parent)
 
         self.setModal(True)
-        self.resize(700,500)
+        self.resize(700,400)
 
         self.rowGui = []
-        self.dictPath = QLabel("Not selected")
+        self.dictPath = QLineEdit("Not selected")
 
         self.setWindowTitle("Freqman Preferences")
         self.vbox = QVBoxLayout(self)
         self.tabWidget = QTabWidget()
         self.vbox.addWidget(self.tabWidget)
 
+        self.createGeneralSettingsTab()
         self.createNoteFilterTab()
         self.createDictSelectTab()
         self.createButtons()
 
         self.setLayout(self.vbox)
 
-    def createNoteFilterTab(self):
+    def createGeneralSettingsTab(self):
         self.frame1 = QWidget()
-        self.tabWidget.addTab(self.frame1,"Note Filter")
+        self.tabWidget.addTab(self.frame1,"General")
         vbox = QVBoxLayout()
         self.frame1.setLayout(vbox)
-        vbox.setContentsMargins(0,20,0,0)
+        vbox.setContentsMargins(10,20,10,10)
+
+        topLayout = QFormLayout() 
+        self.genSettings = {}
+        settings = getPrefs()['general']
+        for k,v in settings.items():
+            gen = QCheckBox()
+            gen.setChecked(v['value'])
+            self.genSettings[k] = (v['text'], gen)
+            topLayout.addRow(v['text'],gen)
+
+        vbox.addLayout(topLayout)
+        resetButton = QPushButton("&Reset Preferences")
+        vbox.addWidget(resetButton, 1, Qt.AlignRight)
+        resetButton.setMaximumWidth(150)
+        resetButton.clicked.connect(self.reset)
+
+    def reset(self):
+        resetPrefs()
+        self.tabWidget.clear()
+        self.createGeneralSettingsTab()
+        self.createNoteFilterTab()
+        self.createDictSelectTab()
+
+
+    def createNoteFilterTab(self):
+        self.frame2 = QWidget()
+        self.tabWidget.addTab(self.frame2,"Note Filter")
+        vbox = QVBoxLayout()
+        self.frame2.setLayout(vbox)
+        vbox.setContentsMargins(10,20,10,10)
 
         self.tableModel = QStandardItemModel(0, 3)
         self.tableView = QTableView()
@@ -68,27 +98,52 @@ class PrefWindow(QDialog):
         self.delete = self.mkBtn("Delete", self.onDelete, hbox)
 
     def createDictSelectTab(self):
-        self.frame2 = QWidget()
-        self.tabWidget.addTab(self.frame2,"Dictionary Selection")
+        self.frame3 = QWidget()
+        self.tabWidget.addTab(self.frame3,"Dictionary Selection")
         vbox = QVBoxLayout()
-        self.frame2.setLayout(vbox)
-        vbox.setContentsMargins(0,20,0,0)
+        self.frame3.setLayout(vbox)
+        vbox.setContentsMargins(10,20,10,10)
 
-        dictLabel = QLabel("Current Dictionary")
-        vbox.addWidget(dictLabel)
+        topLayout = QFormLayout()
         self.dictComboBox = QComboBox()
         self.getDictComboBox()
-        vbox.addWidget(self.dictComboBox)
+        topLayout.addRow("Current Dictionary:",self.dictComboBox)
+        dictStyle = QComboBox()
+        dictStyle.addItem("Rank")
+        dictStyle.addItem("Occurrence")
+        if getPrefs()['dictStyle'] != "Rank":
+            dictStyle.setCurrentIndex(1)
+        self.dictStyle = dictStyle
+        topLayout.addRow("Sorting mode:",self.dictStyle)
+        buttonDeleteDict = QPushButton("&Remove Dictionary")
+        buttonDeleteDict.setMaximumWidth(150)
+        buttonDeleteDict.clicked.connect(self.rmDict)
+        topLayout.addRow("",buttonDeleteDict)
+        vbox.addLayout(topLayout)
+        
+        bottomLayout = QVBoxLayout()
+        newDictLabel = QLabel("Import new dictionary")
+        bottomLayout.addWidget(newDictLabel)
 
+        hbox = QHBoxLayout()
         buttonSearchDict = QPushButton("&Select")
-        vbox.addWidget(buttonSearchDict, 1, Qt.AlignLeft)
         buttonSearchDict.setMaximumWidth(150)
         buttonSearchDict.clicked.connect(self.getFile)
-        vbox.addWidget(self.dictPath)
+        hbox.addWidget(buttonSearchDict)
+        hbox.addWidget(self.dictPath)
+        bottomLayout.addLayout(hbox)
+
         buttonImportDict = QPushButton("&Import")
-        vbox.addWidget(buttonImportDict,1,Qt.AlignLeft)
         buttonImportDict.setMaximumWidth(150)
         buttonImportDict.clicked.connect(self.importDict)
+        bottomLayout.addWidget(buttonImportDict)
+        vbox.addLayout(bottomLayout)
+
+    def rmDict(self):
+        reply = QMessageBox.question(self,'Remove Dictionary','Are you sure you?',QMessageBox.Yes|QMessageBox.No,QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            rmDictFromDB(self.dictComboBox.currentText())
+            self.getDictComboBox()
 
     def getDictComboBox(self):
         assert self.dictComboBox
@@ -139,14 +194,17 @@ class PrefWindow(QDialog):
         for _, rowGui in enumerate(self.rowGui):
             cfg['filter'].append(self.rowGuiToFilter(rowGui))
         cfg['setDict'] = self.dictComboBox.currentText()
+        cfg['dictStyle'] = self.dictStyle.currentText()
+        cfg['general'] = {}
+        for k,v in self.genSettings.items():
+            cfg['general'][k] = {'text' : v[0], 'value' : v[1].isChecked()}
         return cfg
 
     def rowGuiToFilter(self, row_gui):
         filter = {}
 
         filter['type'] = row_gui['modelComboBox'].currentText()
-        filter['field'] = [
-            x for x in row_gui['fieldsEntry'].text().split(', ') if x]
+        filter['field'] = row_gui['fieldEntry'].text()
         filter['modify'] = row_gui['modifyCheckBox'].checkState() != Qt.Unchecked
 
         return filter
@@ -199,14 +257,14 @@ class PrefWindow(QDialog):
         modifyItem.setCheckState(Qt.Checked if data.get('modify', True) else Qt.Unchecked)
 
         rowGui['modelComboBox'] = modelComboBox
-        rowGui['fieldsEntry'] = QLineEdit(', '.join(data['field']))
+        rowGui['fieldEntry'] = QLineEdit(data['field'])
         rowGui['modifyCheckBox'] = modifyItem
 
         def setColumn(col, widget):
             self.tableView.setIndexWidget(self.tableModel.index(rowIndex, col), widget)
 
         setColumn(0, rowGui['modelComboBox'])
-        setColumn(1, rowGui['fieldsEntry'])
+        setColumn(1, rowGui['fieldEntry'])
         self.tableModel.setItem(rowIndex, 2, modifyItem)
 
         if len(self.rowGui) == rowIndex:

@@ -57,13 +57,13 @@ def createUserDatabase():
     getUserDB().execute(schema)
     schema = """
     CREATE TABLE IF NOT EXISTS sorted(
-        card INTEGER UNIQUE,
+        card INTEGER UNIQUE
     )
     """
     getUserDB().execute(schema)
     schema = """
     CREATE TABLE IF NOT EXISTS updated(
-        card INTEGER UNIQUE,
+        card INTEGER UNIQUE
     )
     """
     getUserDB().execute(schema)
@@ -147,6 +147,19 @@ def importYomichanFreqDict(path):
     getDictDBCon().commit()
     return "Success, added " + str(termcount) + " terms"
 
+def rmDictFromDB(name):
+    if name == "None":
+        return
+    getDictDB().execute("""
+    DELETE FROM dicts
+    WHERE name = ?
+    """,name)
+    getDictDB().execute("""
+    DELETE FROM terms
+    WHERE dict = ?
+    """,name)
+    getDictDBCon().commit()
+
 def getDicts():
     res = getDictDB().execute("SELECT name FROM dicts")
     return res.fetchall() 
@@ -160,14 +173,14 @@ def addSortedCards(cards):
     getUserDBCon().commit()
 
 def addKnownCards(cards):
+    # TODO this looks very inneficcient
+    getUserDB().execute("DELETE FROM known")
     getUserDB().execute("""
-    TRUNCATE TABLE known;
-    INSERT INTO known VALUES (
+    INSERT INTO known 
         SELECT term
         FROM cards
-        WHERE card IN ?
-    )
-    """,cards)
+        WHERE card IN (?)
+    """,(','.join(cards),))
     getUserDBCon().commit()
 
 def getKnownCards():
@@ -193,7 +206,7 @@ def getTermInDictDB(s) -> tuple:
     return res.fetchone()
 
 def getCardsWithFreq():
-    getUserDB().execute("ATTACH DATABASE 'dict.db' AS source")
+    getUserDB().execute("ATTACH DATABASE ? AS source",(config('dictDB'),))
     res = getUserDB().execute("""
     SELECT card, freq
     FROM (
@@ -204,7 +217,7 @@ def getCardsWithFreq():
         WHERE dict = ?
     )
     WHERE card NOT IN (SELECT card FROM sorted)
-    """,getPrefs()['setDict'])
+    """,(getPrefs()['setDict'],))
     getUserDB().execute("DETACH DATABASE source")
     return res.fetchall()
     
