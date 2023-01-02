@@ -31,6 +31,12 @@ def addMissingJsonConfig(d):
                     pd[k][k2] = v2
     return pd
 
+def getGeneralOption(id):
+    try:
+        getPrefs()['general'][id]['value']
+    except KeyError:
+        print("Key error getting general option with key: " + id)
+
 def setGeneralOption(id,val):
     current = getPrefs().copy()
     try:

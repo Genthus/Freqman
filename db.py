@@ -94,14 +94,23 @@ def createUserDatabase():
     getUserDB().execute(schema)
     schema = """
     CREATE TABLE IF NOT EXISTS known(
-        term TEXT UNIQUE
+        term TEXT UNIQUE,
+        card INTEGER NOT NULL,
+        FOREIGN KEY (card)
+            REFERENCES cards (card)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
     )
     """
     getUserDB().execute(schema)
     schema = """
     CREATE TABLE IF NOT EXISTS sorted(
         card INTEGER,
-        dict TEXT
+        dict TEXT,
+        FOREIGN KEY (card)
+            REFERENCES cards (card)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
     )
     """
     getUserDB().execute(schema)
@@ -215,8 +224,6 @@ def addCardsToUserDB(cards):
     getUserDBCon().commit()
 
 def addSortedCards(cards):
-    # TODO this is bad
-    clearSortedCards()
     getUserDB().executemany("INSERT INTO sorted VALUES (?,?)",cards)
     getUserDBCon().commit()
 
@@ -228,16 +235,21 @@ def addKnownCards(cards):
     # TODO this looks very inneficcient
     getUserDB().execute("DELETE FROM known")
     getUserDBCon().commit()
-    getUserDB().execute("""
-    INSERT INTO known 
-        SELECT term
+    getUserDB().executemany("""
+    INSERT INTO known (term,card)
+        SELECT term, card
         FROM cards
         WHERE card IN (?)
-    """,(','.join(cards),))
+    """,[(c,) for c in cards])
     getUserDBCon().commit()
 
-def getKnownCards():
-    res = getUserDB().execute("SELECT term FROM known")
+def getCardsWithKnownTerms():
+    res = getUserDB().execute("""
+    SELECT card
+    FROM cards
+    WHERE term IN (SELECT term FROM known)
+    AND card NOT IN (SELECT card FROM known)
+    """)
     return res.fetchall()
 
 def addCardToUpdate(c):
@@ -247,8 +259,10 @@ def addCardToUpdate(c):
     getUserDBCon().commit()
 
 def getUpdatedCards():
-    res = getUserDB().execute("SELECT card FROM updated")
-    return res.fetchall()
+    res = getUserDB().execute("SELECT card FROM updated").fetchall()
+    getUserDB().execute("DELETE FROM updated")
+    getUserDBCon().commit()
+    return res
 
 def getTermInDictDB(s) -> tuple:
     dictName = getPrefs()['setDict']
@@ -268,18 +282,27 @@ def getCardsWithFreq():
     INNER JOIN source.terms
     ON cards.term = source.terms.term
     WHERE dict = ?
-    AND card NOT IN (SELECT card FROM sorted WHERE dict != ?)
-    """,(getPrefs()['setDict'],getPrefs()['setDict']))
+    AND card NOT IN (SELECT card FROM known)
+    AND card NOT IN (SELECT card FROM sorted)
+    """,(getPrefs()['setDict'],))
     return res.fetchall()
+
+def removeCardFromUserDB(id):
+    getUserDB().execute("DELETE FROM cards WHERE card=?",(id,))
+    getUserDBCon().commit()
     
 def resetUserDB():
     getUserDB().execute("DELETE FROM cards")
+    getUserDB().execute("DROP TABLE cards")
     getUserDBCon().commit()
     getUserDB().execute("DELETE FROM known")
+    getUserDB().execute("DROP TABLE known")
     getUserDBCon().commit()
     getUserDB().execute("DELETE FROM sorted")
+    getUserDB().execute("DROP TABLE sorted")
     getUserDBCon().commit()
     getUserDB().execute("DELETE FROM updated")
+    getUserDB().execute("DROP TABLE updated")
     getUserDBCon().commit()
     createUserDatabase()
     getUserDBCon().commit()

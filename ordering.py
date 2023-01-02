@@ -1,5 +1,5 @@
 from aqt import mw
-from .preferences import getPrefs, setGeneralOption, setPref
+from .preferences import getPrefs, setGeneralOption, setPref, getGeneralOption
 from .db import *
 
 def addCardsToDB():
@@ -20,38 +20,30 @@ def addCardsToDB():
 
 def markCardsAsKnown():
     known = mw.col.find_cards("tag:"+getPrefs()['tags']['tracked'] + " -is:new")
+    if getGeneralOption('ignoreSusLeech'):
+        known = mw.col.find_cards("tag:"+getPrefs()['tags']['tracked'] + " -is:new -tag:leech -is:suspended")
     for id in known:
-        card = mw.col.get_gard(id)
+        card = mw.col.get_card(id)
         card.note().add_tag(getPrefs()['tags']['known'])
         mw.col.update_note(card.note())
     addKnownCards(known)
 
 def pushKnownNewCardsBack():
-    known = getKnownCards()
-    for cardType in getPrefs()['filter']:
-        new = mw.col.find_cards("tag:" + getPrefs()['tags']['tracked'] 
-                                    + " is:new" 
-                                    + " -tag:" + getPrefs()['tags']['known']
-                                    + " note:" + cardType['type'])
-        for id in new:
-            card = mw.col.get_card(id)
-            if card == None:
-                break
-            if cardType['field'] not in card.note().keys():
-                break
-            expression = card.note()[cardType['field']]
-            if expression in known:
-                card.note().add_tag(getPrefs()['tags']['known'])
-                card.ord = 100000
-                mw.col.update_card(card)
-                mw.col.update_note(card.note())
+    known = getCardsWithKnownTerms()
+    for id in known:
+        card = mw.col.get_card(id[0])
+        assert card, "None card"
+        card.note().add_tag(getPrefs()['tags']['known'])
+        card.due = 200000
+        mw.col.update_card(card)
+        mw.col.update_note(card.note())
 
 def orderCardsInDB():
     tracked = getCardsWithFreq()
     cards = []
     for (id,freq) in tracked:
         card = mw.col.get_card(id)
-        if card.type == 0:
+        if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['known']):
             card.due = freq
             card.note().add_tag(getPrefs()['tags']['sorted'])
             mw.col.update_note(card.note())
@@ -64,11 +56,12 @@ def orderCardsInDB():
     addSortedCards(cards)
 
 def cleanUpdatedCards():
+    # TODO account for card deletion and stuff like that
     updated = getUpdatedCards()
     for id in updated:
         card = mw.col.get_card(id)
         if card == None:
-            break
+            removeCardFromUserDB(id)
         for tag in getPrefs()['tags'].values:
             card.note().remove_tag(tag)
         mw.col.update_note(card.note())
@@ -85,9 +78,10 @@ def recalculate():
     if getPrefs()['setDict'] != getPrefs()['lastSortedDict']:
         cleanSorted()
         setGeneralOption('refresh',False)
-    orderCardsInDB()
+    # TODO remove tags
     markCardsAsKnown()
     pushKnownNewCardsBack()
+    orderCardsInDB()
     setPref('lastSortedDict', getPrefs()['setDict'])
 
 def cleanUserData():
