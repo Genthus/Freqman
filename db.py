@@ -9,20 +9,51 @@ from .config import config
 userDB = None
 dictDB = None
 
+userDBCursor = None
+dictDBCursor = None
+
+dbIsAttached = False
+
 def dbInit():
     if not os.path.isdir(config('dbPath')):
         os.mkdir(config('dbPath'))
+    global dbIsAttached
+    dbIsAttached = False
+    getUserDBCon()
+    getDictDBCon()
     getUserDB()
     getDictDB()
 
 def dbClose():
+    closeUserDB()
+    closeDictDB()
+
+def closeUserDB():
+    global userDB, userDBCursor
+    if userDBCursor != None:
+        userDBCursor.close()
+        userDBCursor = None
     if userDB != None:
         userDB.close()
+        userDB = None
+
+def closeDictDB():
+    global dictDB, dictDBCursor
+    if dictDBCursor != None:
+        dictDBCursor.close()
+        dictDBCursor = None
     if dictDB != None:
         dictDB.close()
+        dictDB = None
+
 
 def getUserDB():
-    return getUserDBCon().cursor()
+    global userDBCursor
+    if userDBCursor == None:
+        return getUserDBCon().cursor()
+    userDBCursor.close()
+    userDBCursor = getUserDBCon().cursor()
+    return userDBCursor
 
 def getUserDBCon():
     global userDB
@@ -32,7 +63,12 @@ def getUserDBCon():
     return userDB
 
 def getDictDB():
-    return getDictDBCon().cursor()
+    global dictDBCursor
+    if dictDBCursor == None:
+        return getDictDBCon().cursor()
+    dictDBCursor.close()
+    dictDBCursor = getDictDBCon().cursor()
+    return dictDBCursor
 
 def getDictDBCon():
     global dictDB
@@ -40,6 +76,13 @@ def getDictDBCon():
         dictDB = sqlite3.connect(config('dictDB'))
         verifyDictDatabase()
     return dictDB
+
+def dbAttached():
+    global dbIsAttached
+    if dbIsAttached:
+        return dbIsAttached
+    dbIsAttached = True
+    return False
 
 def createUserDatabase():
     schema = """
@@ -57,7 +100,8 @@ def createUserDatabase():
     getUserDB().execute(schema)
     schema = """
     CREATE TABLE IF NOT EXISTS sorted(
-        card INTEGER UNIQUE
+        card INTEGER,
+        dict TEXT
     )
     """
     getUserDB().execute(schema)
@@ -150,14 +194,16 @@ def importYomichanFreqDict(path):
 def rmDictFromDB(name):
     if name == "None":
         return
+    # TODO completely remove dicts table, its unnecessary and might cause errors
     getDictDB().execute("""
     DELETE FROM dicts
     WHERE name = ?
-    """,name)
+    """,(name,))
+    getDictDBCon().commit()
     getDictDB().execute("""
     DELETE FROM terms
     WHERE dict = ?
-    """,name)
+    """,(name,))
     getDictDBCon().commit()
 
 def getDicts():
@@ -169,12 +215,19 @@ def addCardsToUserDB(cards):
     getUserDBCon().commit()
 
 def addSortedCards(cards):
-    getUserDB().executemany("INSERT INTO sorted VALUES (?)",cards)
+    # TODO this is bad
+    clearSortedCards()
+    getUserDB().executemany("INSERT INTO sorted VALUES (?,?)",cards)
+    getUserDBCon().commit()
+
+def clearSortedCards():
+    getUserDB().execute("DELETE FROM sorted")
     getUserDBCon().commit()
 
 def addKnownCards(cards):
     # TODO this looks very inneficcient
     getUserDB().execute("DELETE FROM known")
+    getUserDBCon().commit()
     getUserDB().execute("""
     INSERT INTO known 
         SELECT term
@@ -191,6 +244,7 @@ def addCardToUpdate(c):
     for cardType in getPrefs()['filter']:
         if c.type == cardType['type']:
             getUserDB().execute("INSERT INTO updated VALUES (?)",(c,))
+    getUserDBCon().commit()
 
 def getUpdatedCards():
     res = getUserDB().execute("SELECT card FROM updated")
@@ -206,23 +260,26 @@ def getTermInDictDB(s) -> tuple:
     return res.fetchone()
 
 def getCardsWithFreq():
-    getUserDB().execute("ATTACH DATABASE ? AS source",(config('dictDB'),))
+    if not dbAttached():
+        getUserDB().execute("ATTACH DATABASE ? AS source",(config('dictDB'),))
     res = getUserDB().execute("""
     SELECT card, freq
-    FROM (
-        SELECT card, freq
-        FROM cards 
-        LEFT JOIN source.terms
-        ON cards.term = source.terms.term
-        WHERE dict = ?
-    )
-    WHERE card NOT IN (SELECT card FROM sorted)
-    """,(getPrefs()['setDict'],))
-    getUserDB().execute("DETACH DATABASE source")
+    FROM cards 
+    INNER JOIN source.terms
+    ON cards.term = source.terms.term
+    WHERE dict = ?
+    AND card NOT IN (SELECT card FROM sorted WHERE dict != ?)
+    """,(getPrefs()['setDict'],getPrefs()['setDict']))
     return res.fetchall()
     
-def checkIfTermInUserDB(s) -> bool:
-    res = getUserDB().execute("SELECT term FROM known WHERE term='?'",s)
-    if res.fetchone() == None:
-        return False
-    return True 
+def resetUserDB():
+    getUserDB().execute("DELETE FROM cards")
+    getUserDBCon().commit()
+    getUserDB().execute("DELETE FROM known")
+    getUserDBCon().commit()
+    getUserDB().execute("DELETE FROM sorted")
+    getUserDBCon().commit()
+    getUserDB().execute("DELETE FROM updated")
+    getUserDBCon().commit()
+    createUserDatabase()
+    getUserDBCon().commit()

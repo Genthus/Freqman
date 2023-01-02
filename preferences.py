@@ -1,51 +1,54 @@
 from aqt import mw
+import json
 
 prefData = None
 
 def prefInit():
     global prefData
     prefData = None
-    getPreferences()
+    getPrefs()
 
-def getPreferences():
-    addonsConfig = mw.addonManager.getConfig('Freqman')
-    addMissingJsonConfig()
-    return addonsConfig
-
-def getPrefs():
+def getPrefs() -> dict:
     global prefData 
     if prefData == None:
-        prefData = getPreferences()
+        prefData = mw.addonManager.getConfig('Freqman')
+        prefData = addMissingJsonConfig(prefData)
     return prefData
 
 def defaultJson():
-    return {
-        "filter": [{ "field": "Expression", "type": "notBasic", "modify": False }],
-        "setDict": "None",
-        "dictStyle": "Rank",
-        "tags": { "known": "fmKnown", "sorted": "fmSorted", "tracked": "fmTracked" },
-        "general": {
-            "onSync" : { "text": "Run with sync", "value": False },
-            "ignoreSusLeech" : { "text": "Ignore suspened leeches", "value": False },
-        }
-    }
+    return mw.addonManager.addonConfigDefaults('Freqman')
 
-def addMissingJsonConfig():
-    current = {}
-    global prefData
-    if prefData != None:
-        current = getPrefs().copy()
-    default = defaultJson()
-    for key, value in default.items():
-        if key not in current:
-            current[key] = value
-    mw.addonManager.writeConfig('Freqman',current)
-    prefData = current
+def addMissingJsonConfig(d):
+    pd = {}
+    if d != None:
+        pd = d.copy()
+    for k,v in defaultJson().items():
+        if k not in pd:
+            pd[k] = v
+        if k == "general":
+            for k2,v2 in v.items():
+                if k2 not in pd[k]:
+                    pd[k][k2] = v2
+    return pd
+
+def setGeneralOption(id,val):
+    current = getPrefs().copy()
+    try:
+        current['general'][id]['value'] = val
+    except KeyError:
+        print("Key error setting general option with key: " + id)
+    updatePrefs(current)
+
+def setPref(id, val):
+    current = getPrefs().copy()
+    try:
+        current[id] = val
+    except KeyError:
+        print("Key error setting pref with key: " + id)
+    updatePrefs(current)
 
 def updatePrefs(newCfg):
     current = getPrefs().copy()
-    if current == None:
-        getPreferences()
     for k, v in newCfg.items():
         current[k] = v
     mw.addonManager.writeConfig('Freqman',current)

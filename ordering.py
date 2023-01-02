@@ -1,5 +1,5 @@
 from aqt import mw
-from .preferences import getPrefs
+from .preferences import getPrefs, setGeneralOption, setPref
 from .db import *
 
 def addCardsToDB():
@@ -48,12 +48,20 @@ def pushKnownNewCardsBack():
 
 def orderCardsInDB():
     tracked = getCardsWithFreq()
+    cards = []
     for (id,freq) in tracked:
         card = mw.col.get_card(id)
-        card.ord = freq
-        card.note().add_tag(getPrefs()['tags']['sorted'])
-        mw.col.update_note(card.note())
-    addSortedCards(mw.col.find_cards("tag:"+getPrefs()['tags']['sorted']))
+        if card.type == 0:
+            card.due = freq
+            card.note().add_tag(getPrefs()['tags']['sorted'])
+            mw.col.update_note(card.note())
+            mw.col.update_card(card)
+            cards.append((id,getPrefs()['setDict']))
+    for id in mw.col.find_cards("tag:" + getPrefs()['tags']['sorted']):
+        if id not in cards:
+            card = mw.col.get_card(id)
+            card.note().remove_tag(getPrefs()['tags']['sorted'])
+    addSortedCards(cards)
 
 def cleanUpdatedCards():
     updated = getUpdatedCards()
@@ -63,10 +71,30 @@ def cleanUpdatedCards():
             break
         for tag in getPrefs()['tags'].values:
             card.note().remove_tag(tag)
+        mw.col.update_note(card.note())
+
+def cleanSorted():
+    clearSortedCards()
+    for id in mw.col.find_cards("tag:" + getPrefs()['tags']['sorted']):
+        card = mw.col.get_card(id)
+        card.note().remove_tag(getPrefs()['tags']['sorted'])
 
 def recalculate():
     cleanUpdatedCards()
     addCardsToDB()
+    if getPrefs()['setDict'] != getPrefs()['lastSortedDict']:
+        cleanSorted()
+        setGeneralOption('refresh',False)
     orderCardsInDB()
     markCardsAsKnown()
     pushKnownNewCardsBack()
+    setPref('lastSortedDict', getPrefs()['setDict'])
+
+def cleanUserData():
+    resetUserDB()
+    for tag in getPrefs()['tags'].values():
+        notes = mw.col.find_notes("tag:" + tag)
+        for id in notes:
+            note = mw.col.get_note(id)
+            note.remove_tag(tag)
+            mw.col.update_note(note)

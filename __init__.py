@@ -27,8 +27,9 @@ def addonInit():
     prefInit()
     dbInit()
 
-gui_hooks.profile_did_open.append(addonInit)
-gui_hooks.profile_will_close.append(dbClose)
-hooks.card_will_flush.append(addCardToUpdate)
 mw.addonManager.setConfigAction("Freqman", openPrefs)
+
+hooks.card_will_flush.append(addCardToUpdate)
+gui_hooks.profile_will_close.append(dbClose)
+gui_hooks.profile_did_open.append(addonInit)
 

@@ -5,6 +5,7 @@ from aqt import mw
 from aqt.qt import *
 from .preferences import getPrefs, updatePrefs, resetPrefs
 from .db import importYomichanFreqDict, getDicts, rmDictFromDB
+from .ordering import cleanUserData
 
 class PrefWindow(QDialog):
     def __init__(self,parent=None):
@@ -45,10 +46,16 @@ class PrefWindow(QDialog):
             topLayout.addRow(v['text'],gen)
 
         vbox.addLayout(topLayout)
+
         resetButton = QPushButton("&Reset Preferences")
         vbox.addWidget(resetButton, 1, Qt.AlignRight)
         resetButton.setMaximumWidth(150)
         resetButton.clicked.connect(self.reset)
+
+        resetDBButton = QPushButton("&Reset database and tags")
+        vbox.addWidget(resetDBButton, 1, Qt.AlignRight)
+        resetDBButton.setMaximumWidth(150)
+        resetDBButton.clicked.connect(self.resetDB)
 
     def reset(self):
         resetPrefs()
@@ -57,6 +64,8 @@ class PrefWindow(QDialog):
         self.createNoteFilterTab()
         self.createDictSelectTab()
 
+    def resetDB(self):
+        cleanUserData()
 
     def createNoteFilterTab(self):
         self.frame2 = QWidget()
