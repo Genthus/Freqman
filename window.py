@@ -180,6 +180,10 @@ class PrefWindow(QDialog):
             err.setText(res)
             err.exec()
             self.getDictComboBox()
+        else:
+            err = QMessageBox(self)
+            err.setText("No file selected")
+            err.exec()
 
     def createButtons(self):
         hbox = QHBoxLayout()

@@ -38,6 +38,16 @@ def pushKnownNewCardsBack():
         mw.col.update_card(card)
         mw.col.update_note(card.note())
 
+def pushBackCardsWithNoFreq():
+    tracked = getCardsWithoutFreq()
+    for id in tracked:
+        card = mw.col.get_card(id)
+        if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['known']):
+            card.due = 100000
+            card.note().add_tag(getPrefs()['tags']['sorted'])
+            mw.col.update_note(card.note())
+            mw.col.update_card(card)
+
 def orderCardsInDB():
     tracked = getCardsWithFreq()
     cards = []

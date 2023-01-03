@@ -3,6 +3,7 @@ from zipfile import ZipFile
 import os
 import shutil
 import json
+import tempfile
 from .preferences import getPrefs
 from .config import config
 
@@ -140,12 +141,6 @@ def createDictDatabase():
     )
     """
     getDictDB().execute(schema)
-    schema = """
-    CREATE TABLE IF NOT EXISTS dicts(
-        name TEXT UNIQUE
-    )
-    """
-    getDictDB().execute(schema)
 
 def verifyDictDatabase():
     try:
@@ -153,29 +148,34 @@ def verifyDictDatabase():
     except sqlite3.OperationalError:
         createDictDatabase()
         return
-    if 'dicts' not in tables.fetchall():
-        createDictDatabase()
     return True
 
 def importYomichanFreqDict(path):
+    tempFolder = os.path.join(tempfile.gettempdir(),'freqManYomiImport')
+    try:
+        shutil.rmtree(tempFolder)
+    except FileNotFoundError:
+        # temp folder file existed
+        print("")
+    os.mkdir(tempFolder)
+
     with ZipFile(path) as zip:
-        zip.extractall(path="./temp")
+        zip.extractall(tempFolder)
     dictData = {}
-    with open(os.path.join("./temp","index.json")) as f:
+    with open(os.path.join(tempFolder,"index.json")) as f:
         data = json.load(f)
         dictData['title'] = data['title']
         if dictData['title'] == 'None':
             # exception for None name
             return "Name cannot be None"
-    tableInDB = getDictDB().execute("SELECT name FROM dicts")
+    tableInDB = getDictDB().execute("SELECT dict FROM terms GROUP BY dict")
     if dictData['title'] in tableInDB.fetchall():
         return "table already in DB"
-    getDictDB().execute("INSERT INTO dicts VALUES (?)", (dictData['title'],))
     termcount = 0
-    for file in os.listdir("./temp"):
+    for file in os.listdir(tempFolder):
         terms = []
         if "term_meta_bank" in file:
-            with open(os.path.join("./temp",file)) as f:
+            with open(os.path.join(tempFolder,file)) as f:
                 terms = json.load(f)
             # very rough verification of the dictionary
             if len(terms) <= 0:
@@ -190,24 +190,30 @@ def importYomichanFreqDict(path):
                 for t in terms:
                     newTerms.append([t[0],t[2],dictData['title']])
             elif type(terms[0][2]) == dict:
+                termName = 'frequency'
+                try:
+                    print(terms[0][2][termName])
+                except KeyError:
+                    termName = 'value'
                 for t in terms:
-                    newTerms.append([t[0],t[2]['frequency'],dictData['title']])
+                    try:
+                        newTerms.append([t[0],t[2][termName],dictData['title']])
+                    except KeyError:
+                        # JPDB schema issue
+                        try:
+                            newTerms.append([t[0],t[2]['frequency'][termName],dictData['title']])
+                        except KeyError:
+                            print(t)
             getDictDB().executemany("INSERT INTO terms VALUES (?,?,?)",newTerms)
             termcount += len(terms)
             
-
-    shutil.rmtree("./temp")
+    shutil.rmtree(tempFolder)
     getDictDBCon().commit()
     return "Success, added " + str(termcount) + " terms"
 
 def rmDictFromDB(name):
     if name == "None":
         return
-    # TODO completely remove dicts table, its unnecessary and might cause errors
-    getDictDB().execute("""
-    DELETE FROM dicts
-    WHERE name = ?
-    """,(name,))
     getDictDBCon().commit()
     getDictDB().execute("""
     DELETE FROM terms
@@ -216,7 +222,7 @@ def rmDictFromDB(name):
     getDictDBCon().commit()
 
 def getDicts():
-    res = getDictDB().execute("SELECT name FROM dicts")
+    res = getDictDB().execute("SELECT dict FROM terms GROUP BY dict")
     return res.fetchall() 
 
 def addCardsToUserDB(cards):
@@ -282,6 +288,24 @@ def getCardsWithFreq():
     INNER JOIN source.terms
     ON cards.term = source.terms.term
     WHERE dict = ?
+    AND card NOT IN (SELECT card FROM known)
+    AND card NOT IN (SELECT card FROM sorted)
+    """,(getPrefs()['setDict'],))
+    return res.fetchall()
+
+def getCardsWithoutFreq():
+    if not dbAttached():
+        getUserDB().execute("ATTACH DATABASE ? AS source",(config('dictDB'),))
+    res = getUserDB().execute("""
+    SELECT card
+    FROM cards 
+    WHERE card NOT IN (
+        SELECT card
+        FROM cards
+        LEFT JOIN source.terms
+        ON cards.term = source.terms.term
+        WHERE dict = ?
+    )
     AND card NOT IN (SELECT card FROM known)
     AND card NOT IN (SELECT card FROM sorted)
     """,(getPrefs()['setDict'],))
