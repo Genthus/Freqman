@@ -4,7 +4,7 @@ from anki import hooks
 from aqt.utils import qconnect
 from aqt.qt import *
 from .preferences import prefInit
-from .ordering import recalculate
+from .ordering import recalculate, afterSyncReorder
 from .window import openPrefs
 from .db import dbInit, dbClose, addCardToUpdate
 from .config import configInit
@@ -32,4 +32,5 @@ mw.addonManager.setConfigAction("Freqman", openPrefs)
 hooks.card_will_flush.append(addCardToUpdate)
 gui_hooks.profile_will_close.append(dbClose)
 gui_hooks.profile_did_open.append(addonInit)
+gui_hooks.sync_did_finish.append(afterSyncReorder)
 

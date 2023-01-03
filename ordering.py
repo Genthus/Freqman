@@ -11,11 +11,16 @@ def addCardsToDB():
             if card == None:
                 break
             note = card.note()
-            assert noteType['field'] in note.keys(), "Failed to find field %s in note type with fields %s"%noteType['field']%note.keys()
-            expression = note[noteType['field']]
-            cardsToAdd.append([id,expression])
-            note.add_tag(getPrefs()['tags']['tracked'])
-            mw.col.update_note(note)
+            hasTags = True
+            for tag in noteType['tags']:
+                if not note.hastag(tag):
+                    hasTags = False
+            if hasTags:
+                assert noteType['field'] in note.keys(), "Failed to find field %s in note type with fields %s"%noteType['field']%note.keys()
+                expression = note[noteType['field']]
+                cardsToAdd.append([id,expression])
+                note.add_tag(getPrefs()['tags']['tracked'])
+                mw.col.update_note(note)
     addCardsToUserDB(cardsToAdd)
 
 def markCardsAsKnown():
@@ -93,6 +98,10 @@ def recalculate():
     pushKnownNewCardsBack()
     orderCardsInDB()
     setPref('lastSortedDict', getPrefs()['setDict'])
+
+def afterSyncReorder():
+    if getGeneralOption('afterSync'):
+        recalculate()
 
 def cleanUserData():
     resetUserDB()

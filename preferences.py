@@ -25,7 +25,7 @@ def addMissingJsonConfig(d):
     for k,v in defaultJson().items():
         if k not in pd:
             pd[k] = v
-        if k == "general":
+        if type(k) == map:
             for k2,v2 in v.items():
                 if k2 not in pd[k]:
                     pd[k][k2] = v2

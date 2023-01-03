@@ -74,7 +74,7 @@ class PrefWindow(QDialog):
         self.frame2.setLayout(vbox)
         vbox.setContentsMargins(10,20,10,10)
 
-        self.tableModel = QStandardItemModel(0, 3)
+        self.tableModel = QStandardItemModel(0, 4)
         self.tableView = QTableView()
         self.tableView.setModel(self.tableModel)
         self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -82,7 +82,8 @@ class PrefWindow(QDialog):
         self.tableView.setSelectionMode(QAbstractItemView.SingleSelection)
         self.tableModel.setHeaderData(0,Qt.Horizontal, "Note Type")
         self.tableModel.setHeaderData(1,Qt.Horizontal, "Field")
-        self.tableModel.setHeaderData(2,Qt.Horizontal, "Modify")
+        self.tableModel.setHeaderData(2,Qt.Horizontal, "Tags")
+        self.tableModel.setHeaderData(3,Qt.Horizontal, "Modify")
 
         rowData = getPrefs()['filter']
         self.tableModel.setRowCount(len(rowData))
@@ -93,6 +94,7 @@ class PrefWindow(QDialog):
         label = QLabel(
             "Select the card types you want to include."
             +"\nField determines which part of the card will be looked for."
+            +"\nLeave Tags blank if you want all cards counted, add comma separated tags to only include those."
             +"\nIf Modify is off, the cards will not have their order modified."
         )
         label.setWordWrap(True)
@@ -171,7 +173,13 @@ class PrefWindow(QDialog):
 
     def importDict(self):
         if self.dictPath.text() != "Not selected":
-            res = importYomichanFreqDict(self.dictPath.text())
+            try:
+                res = importYomichanFreqDict(self.dictPath.text())
+            except FileNotFoundError:
+                err = QMessageBox(self)
+                err.setText("File not found")
+                err.exec()
+                return
             if "Success" not in res:
                 err = QMessageBox(self)
                 err.setText("Error: " + res)
@@ -218,6 +226,7 @@ class PrefWindow(QDialog):
 
         filter['type'] = row_gui['modelComboBox'].currentText()
         filter['field'] = row_gui['fieldEntry'].text()
+        filter['tags'] = row_gui['tagsEntry'].text().split(',')
         filter['modify'] = row_gui['modifyCheckBox'].checkState() != Qt.Unchecked
 
         return filter
@@ -271,6 +280,7 @@ class PrefWindow(QDialog):
 
         rowGui['modelComboBox'] = modelComboBox
         rowGui['fieldEntry'] = QLineEdit(data['field'])
+        rowGui['tagsEntry'] = QLineEdit(','.join(data['tags']))
         rowGui['modifyCheckBox'] = modifyItem
 
         def setColumn(col, widget):
@@ -278,7 +288,8 @@ class PrefWindow(QDialog):
 
         setColumn(0, rowGui['modelComboBox'])
         setColumn(1, rowGui['fieldEntry'])
-        self.tableModel.setItem(rowIndex, 2, modifyItem)
+        setColumn(2, rowGui['tagsEntry'])
+        self.tableModel.setItem(rowIndex, 3, modifyItem)
 
         if len(self.rowGui) == rowIndex:
             self.rowGui.append(rowGui)
