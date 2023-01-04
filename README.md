@@ -14,6 +14,10 @@ Sort the selected card types by frequency or rank.
 
 ## Usage
 
+### Anki
+
+Install the addon from the [Anki addon page](https://ankiweb.net/shared/info/1502429998)
+
 ### Download
 
 Clone this repository
