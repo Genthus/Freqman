@@ -9,5 +9,5 @@ jobs:
         uses: thedoctor0/zip-release@main
         with:
           type: "zip"
-          filename: "Freqman.ankiaddon"
+          filename: "freqman.ankiaddon"
           exclusions: "*.git* /*node_modules/* .editorconfig"
