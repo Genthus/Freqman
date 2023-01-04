@@ -142,6 +142,8 @@ def verifyDictDatabase():
     except sqlite3.OperationalError:
         createDictDatabase()
         return
+    if 'terms' not in tables.fetchall():
+        createDictDatabase()
     return True
 
 def importYomichanFreqDict(path):
