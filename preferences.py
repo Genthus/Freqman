@@ -1,5 +1,6 @@
 from aqt import mw
 import json
+from datetime import datetime
 
 prefData = None
 
@@ -31,11 +32,15 @@ def addMissingJsonConfig(d):
                     pd[k][k2] = v2
     return pd
 
+def getDaysSinceLastUpdate():
+    last = getPrefs()['lastUpdate']
+    if last == "":
+        return 100000
+    delta = datetime.now() - datetime.fromisoformat(last)
+    return delta.days
+
 def getGeneralOption(id):
-    try:
-        getPrefs()['general'][id]['value']
-    except KeyError:
-        print("Key error getting general option with key: " + id)
+    return getPrefs()['general'][id]['value']
 
 def setGeneralOption(id,val):
     current = getPrefs().copy()

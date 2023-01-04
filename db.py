@@ -115,12 +115,6 @@ def createUserDatabase():
     )
     """
     getUserDB().execute(schema)
-    schema = """
-    CREATE TABLE IF NOT EXISTS updated(
-        card INTEGER UNIQUE
-    )
-    """
-    getUserDB().execute(schema)
 
 def verifyUserDatabase():
     try:
@@ -258,18 +252,6 @@ def getCardsWithKnownTerms():
     """)
     return res.fetchall()
 
-def addCardToUpdate(c):
-    for cardType in getPrefs()['filter']:
-        if c.type == cardType['type']:
-            getUserDB().execute("INSERT INTO updated VALUES (?)",(c,))
-    getUserDBCon().commit()
-
-def getUpdatedCards():
-    res = getUserDB().execute("SELECT card FROM updated").fetchall()
-    getUserDB().execute("DELETE FROM updated")
-    getUserDBCon().commit()
-    return res
-
 def getTermInDictDB(s) -> tuple:
     dictName = getPrefs()['setDict']
     if dictName == "None":
@@ -324,9 +306,6 @@ def resetUserDB():
     getUserDBCon().commit()
     getUserDB().execute("DELETE FROM sorted")
     getUserDB().execute("DROP TABLE sorted")
-    getUserDBCon().commit()
-    getUserDB().execute("DELETE FROM updated")
-    getUserDB().execute("DROP TABLE updated")
     getUserDBCon().commit()
     createUserDatabase()
     getUserDBCon().commit()
