@@ -1,7 +1,10 @@
 name: Create Anki Addon
-on: [push]
+on:
+  push:
+    tags:
+      - "*"
 jobs:
-  build:
+  setup:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -11,3 +14,12 @@ jobs:
           type: "zip"
           filename: "freqman.ankiaddon"
           exclusions: "*.git* /*node_modules/* .editorconfig"
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "freqman.ankiaddon"
