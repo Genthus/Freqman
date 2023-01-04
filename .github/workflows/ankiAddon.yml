@@ -1,0 +1,13 @@
+name: Create Anki Addon
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Archive Release
+      uses: Genthus/Freqman@main
+      with:
+        type: 'zip'
+        filename: 'Freqman.ankiaddon'
+        exclusions: '*.git* /*node_modules/* .editorconfig'
