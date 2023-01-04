@@ -18,14 +18,21 @@ Sort the selected card types by frequency or rank.
 
 Clone this repository
 
-Windows
+>Windows
+
 `git clone -main https://github.com/Genthus/Freqman %APPDATA%\Roaming\Anki2\addons21`
-Other
+
+>Other
+
 `git clone -main https://github.com/Genthus/Freqman ~/.local/share/Anki2/addons21`
 
 OR download the addon into your addons folder
-|Windows|"%APPDATA%\Roaming\Anki2\addons21"|
-|Other| "~/.local/share/Anki2/addons21"|
+
+>Windows:
+`%APPDATA%\Roaming\Anki2\addons21`
+
+>Other:
+`~/.local/share/Anki2/addons21`
 
 ### Setup
 
@@ -62,5 +69,9 @@ The user files go into the folder user_files, which contains the databases.
 
 ### DBs
 
-user.db: user's known terms go in here
-dict.db: imported dictionaries go in here
+>user.db
+
+user's known terms go in here
+>dict.db
+
+imported dictionaries go in here
