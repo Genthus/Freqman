@@ -9,9 +9,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Build Project
+      - name: Zip
         run: |
-          zip -x freqman.ankiaddon *.git*
+          zip -x freqman.zip *.git*
+      - name: Rename to ankiaddon
+        run: |
+          mv freqman.zip freqman.ankiaddon
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
