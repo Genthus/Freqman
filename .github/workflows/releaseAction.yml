@@ -1,0 +1,5 @@
+- name: Upload Release
+  uses: ncipollo/release-action@v1
+  with:
+    artifacts: "Freqman.ankiaddon"
+    token: ${{ secrets.GITHUB_TOKEN }}
