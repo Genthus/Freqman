@@ -4,21 +4,31 @@ on:
     tags:
       - "*"
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - name: Archive Release
-        uses: thedoctor0/zip-release@main
-        with:
-          type: "zip"
-          filename: "freqman.ankiaddon"
-          exclusions: "*.git* /*node_modules/* .editorconfig"
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Upload Release
-        uses: ncipollo/release-action@v1
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build Project
+        run: |
+          zip -x freqman.ankiaddon *.git*
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          artifacts: "freqman.ankiaddon"
-          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GUTHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.upload_url }}
+          asset_path: ./freqman.ankiaddon
+          asset_name: freqman.ankiaddon
+          asset_content_type: application/zip
