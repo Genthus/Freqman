@@ -293,9 +293,14 @@ def getCardsWithoutFreq():
     """,(getPrefs()['setDict'],))
     return res.fetchall()
 
+def getHighestFreqVal():
+    res = getDictDB().execute("SELECT freq FROM terms ORDER BY freq DESC LIMIT 1")
+    return res.fetchone()
+
 def removeCardFromUserDB(id):
     getUserDB().execute("DELETE FROM cards WHERE card=?",(id,))
     getUserDBCon().commit()
+
     
 def resetUserDB():
     getUserDB().execute("DELETE FROM cards")

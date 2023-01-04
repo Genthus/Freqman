@@ -67,21 +67,21 @@ def pushBackCardsWithNoFreq():
 def orderCardsInDB():
     tracked = getCardsWithFreq()
     cards = []
+    highest = getHighestFreqVal()[0] + 1
     for (id,freq) in tracked:
         card = mw.col.get_card(id)
         if card:
             if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['known']):
-                card.due = freq
+                if getPrefs()['dictStyle'] == 'Rank':
+                    card.due = freq
+                else:
+                    card.due = highest - freq
                 card.note().add_tag(getPrefs()['tags']['sorted'])
                 mw.col.update_note(card.note())
                 mw.col.update_card(card)
                 cards.append((id,getPrefs()['setDict']))
         else:
             cleanCard(id)
-    for id in mw.col.find_cards("tag:" + getPrefs()['tags']['sorted']):
-        if id not in cards:
-            card = mw.col.get_card(id)
-            card.note().remove_tag(getPrefs()['tags']['sorted'])
     addSortedCards(cards)
 
 def cleanUpdatedCards():
@@ -106,11 +106,12 @@ def cleanSorted():
         mw.col.update_note(card.note())
 
 def recalculate():
+    if getPrefs()['setDict'] != getPrefs()['lastSortedDict']:
+        cleanUserData()
+        setGeneralOption('refresh',False)
     cleanUpdatedCards()
     addCardsToDB()
-    if getPrefs()['setDict'] != getPrefs()['lastSortedDict']:
-        cleanSorted()
-        setGeneralOption('refresh',False)
+    cleanSorted()
     markCardsAsKnown()
     pushKnownNewCardsBack()
     orderCardsInDB()
