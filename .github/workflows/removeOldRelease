@@ -1,0 +1,10 @@
+name: Remove Old Releases
+on: [push]
+jobs:
+  remove:
+    - uses: dev-drprasad/delete-older-releases@v0.2.0
+      with:
+        keep_latest: 3
+        delete_tag_pattern: beta
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
