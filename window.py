@@ -116,7 +116,6 @@ class PrefWindow(QDialog):
         vbox.setContentsMargins(10,20,10,10)
 
         topLayout = QFormLayout()
-        self.dictComboBox = QComboBox()
         self.getDictComboBox()
         topLayout.addRow("Current Dictionary:",self.dictComboBox)
         dictStyle = QComboBox()
@@ -157,7 +156,7 @@ class PrefWindow(QDialog):
             self.getDictComboBox()
 
     def getDictComboBox(self):
-        assert self.dictComboBox
+        self.dictComboBox = QComboBox()
         self.dictComboBox.clear()
         self.dictComboBox.addItem("None")
         active = 0
