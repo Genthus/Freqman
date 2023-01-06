@@ -3,8 +3,7 @@ from aqt import gui_hooks
 from aqt.utils import qconnect
 from aqt.qt import *
 from .preferences import prefInit
-from .ordering import afterSyncReorder
-from .progressWindow import openRecalc
+from .progressWindow import openRecalc, afterSyncReorder
 from .window import openPrefs
 from .db import dbInit, dbClose
 from .config import configInit

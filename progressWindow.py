@@ -5,6 +5,7 @@ from aqt import mw
 from aqt.qt import *
 from .ordering import recalculate
 from .db import dbClose
+from .preferences import *
 
 class Thread(QThread):
     _signal = pyqtSignal(int)
@@ -51,7 +52,10 @@ class RecalcBox(QDialog):
             self.close()
             dbClose()
         
-
 def openRecalc():
     mw.fmRecalc = RecalcBox(mw)
     mw.fmRecalc.show()
+
+def afterSyncReorder():
+    if getGeneralOption('afterSync'):
+        openRecalc()

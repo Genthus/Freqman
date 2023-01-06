@@ -143,10 +143,6 @@ def recalculate():
     setPref('lastUpdate',datetime.today().isoformat())
     setPref('lastSortedDict',getPrefs()['setDict'])
 
-def afterSyncReorder():
-    if getGeneralOption('afterSync'):
-        recalculate()
-
 def cleanUserData():
     resetUserDB()
     for tag in getPrefs()['tags'].values():
