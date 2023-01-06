@@ -4,41 +4,31 @@ from datetime import datetime
 
 prefData = None
 
+addonName = 'Freqman'
+
 def prefInit():
+    changeAddonName()
+
     global prefData
     prefData = None
     getPrefs()
 
+def changeAddonName():
+    global addonName
+    for addonMeta in mw.addonManager.all_addon_meta():
+        if addonMeta.human_name() == addonName:
+            addonName = addonMeta.dir_name
+            break
+
 def getPrefs() -> dict:
     global prefData 
     if prefData == None:
-        prefData = mw.addonManager.getConfig('Freqman')
+        prefData = mw.addonManager.getConfig(addonName)
         prefData = addMissingJsonConfig(prefData)
     return prefData
 
 def defaultJson():
-    return {
-        "filter": [
-            { "field": "Field", "tags": [], "type": "notBasic", "modify": False }
-        ],
-        "setDict": "None",
-        "lastSortedDict": "None",
-        "dictStyle": "Rank",
-        "lastUpdate": "",
-        "tags": {
-            "known": "fmKnown",
-            "sorted": "fmSorted",
-            "tracked": "fmTracked"
-        },
-        "general": {
-            "afterSync": { "text": "Run reorder after sync", "value": False },
-            "ignoreSusLeech": { "text": "Ignore suspened leeches", "value": True },
-            "refresh": {
-                "text": "Schedule refresh on next recalculation",
-                "value": True
-            }
-        }
-    }
+    return mw.addonManager.addonConfigDefaults(addonName)
 
 def addMissingJsonConfig(d):
     pd = {}
@@ -83,7 +73,7 @@ def updatePrefs(newCfg):
     current = getPrefs().copy()
     for k, v in newCfg.items():
         current[k] = v
-    mw.addonManager.writeConfig('Freqman',current)
+    mw.addonManager.writeConfig(addonName,current)
     global prefData
     prefData = current
 

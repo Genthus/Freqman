@@ -1,0 +1,22 @@
+{
+    "filter": [
+        { "field": "Field", "tags": [], "type": "notBasic", "modify": false }
+    ],
+    "setDict": "None",
+    "lastSortedDict": "None",
+    "dictStyle": "Rank",
+    "lastUpdate": "",
+    "tags": {
+        "known": "fmKnown",
+        "sorted": "fmSorted",
+        "tracked": "fmTracked"
+    },
+    "general": {
+        "afterSync": { "text": "Run reorder after sync", "value": false },
+        "ignoreSusLeech": { "text": "Ignore suspened leeches", "value": true },
+        "refresh": {
+            "text": "Schedule refresh on next recalculation",
+            "value": true
+        }
+    }
+}
