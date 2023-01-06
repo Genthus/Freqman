@@ -30,13 +30,14 @@ def dbClose():
     closeDictDB()
 
 def closeUserDB():
-    global userDB, userDBCursor
+    global userDB, userDBCursor, dbIsAttached
     if userDBCursor != None:
         userDBCursor.close()
         userDBCursor = None
     if userDB != None:
         userDB.close()
         userDB = None
+        dbIsAttached = False
 
 def closeDictDB():
     global dictDB, dictDBCursor
@@ -95,7 +96,7 @@ def createUserDatabase():
     getUserDB().execute(schema)
     schema = """
     CREATE TABLE IF NOT EXISTS known(
-        term TEXT UNIQUE,
+        term TEXT NOT NULL,
         card INTEGER NOT NULL,
         FOREIGN KEY (card)
             REFERENCES cards (card)
@@ -234,9 +235,6 @@ def clearSortedCards():
     getUserDBCon().commit()
 
 def addKnownCards(cards):
-    # TODO this looks very inneficcient
-    getUserDB().execute("DELETE FROM known")
-    getUserDBCon().commit()
     getUserDB().executemany("""
     INSERT INTO known (term,card)
         SELECT term, card
@@ -299,8 +297,16 @@ def getHighestFreqVal():
     res = getDictDB().execute("SELECT freq FROM terms ORDER BY freq DESC LIMIT 1")
     return res.fetchone()
 
+def getCard(card):
+    res = getUserDB().execute("SELECT card,term FROM cards WHERE card = ?",(card,))
+    return res.fetchone()
+
+def getCards(cards):
+    res = getUserDB().execute("SELECT card,term FROM cards WHERE card IN (?)",[(c,) for c in cards])
+    return res.fetchall()
+
 def removeCardFromUserDB(id):
-    getUserDB().execute("DELETE FROM cards WHERE card=?",(id,))
+    getUserDB().execute("DELETE FROM cards WHERE card=?",(int(id),))
     getUserDBCon().commit()
 
     

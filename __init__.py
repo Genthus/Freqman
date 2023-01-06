@@ -3,7 +3,8 @@ from aqt import gui_hooks
 from aqt.utils import qconnect
 from aqt.qt import *
 from .preferences import prefInit
-from .ordering import recalculate, afterSyncReorder
+from .ordering import afterSyncReorder
+from .progressWindow import openRecalc
 from .window import openPrefs
 from .db import dbInit, dbClose
 from .config import configInit
@@ -12,7 +13,7 @@ from .config import configInit
 reorder = QAction("Reorder Cards", mw)
 prefMenu = QAction("Preferences", mw)
 
-qconnect(reorder.triggered, recalculate)
+qconnect(reorder.triggered, openRecalc)
 qconnect(prefMenu.triggered, openPrefs)
 
 menuBar = mw.menuBar()

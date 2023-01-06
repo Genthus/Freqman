@@ -9,7 +9,8 @@
     "tags": {
         "known": "fmKnown",
         "sorted": "fmSorted",
-        "tracked": "fmTracked"
+        "tracked": "fmTracked",
+        "pushed": "fmPushed"
     },
     "general": {
         "afterSync": { "text": "Run reorder after sync", "value": false },

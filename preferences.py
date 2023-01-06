@@ -15,33 +15,43 @@ def prefInit():
 
 def changeAddonName():
     global addonName
+    tempName = addonName
     for addonMeta in mw.addonManager.all_addon_meta():
         if addonMeta.human_name() == addonName:
-            addonName = addonMeta.dir_name
+            tempName = addonMeta.dir_name
+        if addonMeta.dir_name == addonName:
+            tempName = addonName
             break
+    addonName = tempName
 
 def getPrefs() -> dict:
     global prefData 
     if prefData == None:
         prefData = mw.addonManager.getConfig(addonName)
-        prefData = addMissingJsonConfig(prefData)
+        updatePrefs(addMissingJsonConfig(prefData))
     return prefData
 
 def defaultJson():
     return mw.addonManager.addonConfigDefaults(addonName)
 
-def addMissingJsonConfig(d):
+def addMissingJsonConfig(d: dict):
+    default = defaultJson()
     pd = {}
     if d != None:
         pd = d.copy()
-    for k,v in defaultJson().items():
-        if k not in pd:
-            pd[k] = v
-        if type(k) == map:
+    for k, v in pd.items():
+        if type(v) == dict:
             for k2,v2 in v.items():
-                if k2 not in pd[k]:
-                    pd[k][k2] = v2
-    return pd
+                default[k][k2] = v2
+        else:
+            default[k] = v
+    return default
+
+def newDictSelected():
+    current = getPrefs()
+    if current['setDict'] != current['lastSortedDict']:
+        return True
+    return False
 
 def getDaysSinceLastUpdate():
     last = getPrefs()['lastUpdate']
@@ -73,9 +83,12 @@ def updatePrefs(newCfg):
     current = getPrefs().copy()
     for k, v in newCfg.items():
         current[k] = v
-    mw.addonManager.writeConfig(addonName,current)
     global prefData
     prefData = current
+    mw.addonManager.writeConfig(addonName,current)
+    if prefData != None:
+        if current['filter'] != prefData['filter']:
+            setGeneralOption('refresh', True)
 
 def resetPrefs():
     updatePrefs(defaultJson())

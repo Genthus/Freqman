@@ -27,15 +27,21 @@ def addCardsToDB():
 
 def markCardsAsKnown():
     known = mw.col.find_cards("tag:"+getPrefs()['tags']['tracked'] + " -is:new")
+    dbKnown = getCardsWithKnownTerms()
+    toClean = []
     if getGeneralOption('ignoreSusLeech'):
         exclude = mw.col.find_cards("is:suspended tag:leech tag:"+getPrefs()['tags']['tracked'])
         for id in exclude:
             known.remove(id)
             cleanCard(id)
     for id in known:
-        card = mw.col.get_card(id)
-        card.note().add_tag(getPrefs()['tags']['known'])
-        mw.col.update_note(card.note())
+        if id not in dbKnown:
+            card = mw.col.get_card(id)
+            card.note().add_tag(getPrefs()['tags']['known'])
+            mw.col.update_note(card.note())
+        else:
+            toClean.append(id)
+    cleanCards(toClean)
     addKnownCards(known)
 
 def pushKnownNewCardsBack():
@@ -44,7 +50,7 @@ def pushKnownNewCardsBack():
         card = mw.col.get_card(id[0])
         if card:
             assert card, "None card"
-            card.note().add_tag(getPrefs()['tags']['known'])
+            card.note().add_tag(getPrefs()['tags']['pushed'])
             card.due = 200000
             mw.col.update_card(card)
             mw.col.update_note(card.note())
@@ -54,11 +60,11 @@ def pushKnownNewCardsBack():
 def pushBackCardsWithNoFreq():
     tracked = getCardsWithoutFreq()
     for id in tracked:
-        card = mw.col.get_card(id)
+        card = mw.col.get_card(id[0])
         if card:
-            if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['known']):
+            if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['pushed']):
                 card.due = 100000
-                card.note().add_tag(getPrefs()['tags']['sorted'])
+                card.note().add_tag(getPrefs()['tags']['pushed'])
                 mw.col.update_note(card.note())
                 mw.col.update_card(card)
         else:
@@ -67,11 +73,12 @@ def pushBackCardsWithNoFreq():
 def orderCardsInDB():
     tracked = getCardsWithFreq()
     cards = []
+    toClean = []
     highest = getHighestFreqVal()[0] + 1
     for (id,freq) in tracked:
         card = mw.col.get_card(id)
         if card:
-            if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['known']):
+            if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['pushed']):
                 if getPrefs()['dictStyle'] == 'Rank':
                     card.due = freq
                 else:
@@ -81,22 +88,39 @@ def orderCardsInDB():
                 mw.col.update_card(card)
                 cards.append((id,getPrefs()['setDict']))
         else:
-            cleanCard(id)
+            toClean.append(id)
+    cleanCards(toClean)
     addSortedCards(cards)
 
 def cleanUpdatedCards():
-    updated = mw.col.find_cards("edited:"+str(getDaysSinceLastUpdate()))
-    for id in updated:
+    toClean = []
+    for noteType in getPrefs()['filter']:
+        updated = mw.col.find_cards("edited:"+str(getDaysSinceLastUpdate())
+                                        + " tag:" + getPrefs()['tags']['tracked']
+                                        + " note:" + noteType['type'])
+        for id in updated:
+            card =  mw.col.get_card(id)
+            if card != None:
+                term = card.note()[noteType['field']]
+                if term != getCard(id)[1]:
+                    toClean.append(id)
+            else:
+                toClean.append(id)
+
+        
+    cleanCards(toClean)
+
+def cleanCards(ids):
+    for id in ids:
         cleanCard(id)
 
-def cleanCard(id):
+def cleanCard(id: int):
     removeCardFromUserDB(id)
     card = mw.col.get_card(id)
     if card != None:
         for tag in getPrefs()['tags'].values():
             card.note().remove_tag(tag)
         mw.col.update_note(card.note())
-
 
 def cleanSorted():
     clearSortedCards()
@@ -106,17 +130,18 @@ def cleanSorted():
         mw.col.update_note(card.note())
 
 def recalculate():
-    if getPrefs()['setDict'] != getPrefs()['lastSortedDict']:
+    if getGeneralOption('refresh'):
         cleanUserData()
         setGeneralOption('refresh',False)
     cleanUpdatedCards()
-    addCardsToDB()
     cleanSorted()
+    addCardsToDB()
     markCardsAsKnown()
     pushKnownNewCardsBack()
+    pushBackCardsWithNoFreq()
     orderCardsInDB()
-    setPref('lastSortedDict', getPrefs()['setDict'])
     setPref('lastUpdate',datetime.today().isoformat())
+    setPref('lastSortedDict',getPrefs()['setDict'])
 
 def afterSyncReorder():
     if getGeneralOption('afterSync'):
