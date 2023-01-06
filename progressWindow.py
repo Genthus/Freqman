@@ -49,6 +49,7 @@ class RecalcBox(QDialog):
         self.pbar.setValue(int(msg))
         if self.pbar.value() >= 99:
             self.close()
+            dbClose()
         
 
 def openRecalc():
