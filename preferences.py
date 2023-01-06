@@ -17,7 +17,28 @@ def getPrefs() -> dict:
     return prefData
 
 def defaultJson():
-    return mw.addonManager.addonConfigDefaults('Freqman')
+    return {
+        "filter": [
+            { "field": "Field", "tags": [], "type": "notBasic", "modify": False }
+        ],
+        "setDict": "None",
+        "lastSortedDict": "None",
+        "dictStyle": "Rank",
+        "lastUpdate": "",
+        "tags": {
+            "known": "fmKnown",
+            "sorted": "fmSorted",
+            "tracked": "fmTracked"
+        },
+        "general": {
+            "afterSync": { "text": "Run reorder after sync", "value": False },
+            "ignoreSusLeech": { "text": "Ignore suspened leeches", "value": True },
+            "refresh": {
+                "text": "Schedule refresh on next recalculation",
+                "value": True
+            }
+        }
+    }
 
 def addMissingJsonConfig(d):
     pd = {}
