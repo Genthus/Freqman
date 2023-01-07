@@ -120,7 +120,7 @@ def importYomichanFreqDict(path):
             with ZipFile(path) as zip:
                 zip.extractall(tempFolder)
             dictData = {}
-            with open(os.path.join(tempFolder,"index.json")) as f:
+            with open(os.path.join(tempFolder,"index.json"), encoding="utf-8") as f:
                 data = json.load(f)
                 dictData['title'] = data['title']
                 if dictData['title'] == 'None':
