@@ -12,8 +12,18 @@ userDB = None
 dictDB = None
 
 def dbInit():
-    if not os.path.isdir(config('dbPath')):
+    try:
+        userDB = sqlite3.connect(getUserDB())
+    except sqlite3.OperationalError:
         os.mkdir(config('dbPath'))
+    finally:
+        userDB = sqlite3.connect(getUserDB())
+        userDB.close()
+    dictDB = sqlite3.connect(getDictDB())
+    dictDB.close()
+
+    verifyUserDatabase()
+    verifyDictDatabase()
 
 def getDictDB():
     global dictDB

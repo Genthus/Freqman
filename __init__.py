@@ -22,6 +22,7 @@ mbMenu.addAction(prefMenu)
 # startup
 def addonInit():
     prefInit()
+    dbInit()
 
 mw.addonManager.setConfigAction("Freqman", openPrefs)
 

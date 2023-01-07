@@ -47,8 +47,13 @@ class RecalcBox(QDialog):
             self.close()
         
 def openRecalc():
-    mw.fmRecalc = RecalcBox(mw)
-    mw.fmRecalc.show()
+    if getPrefs()['setDict'] == 'None':
+        err = QMessageBox()
+        err.setText('No dictionary selected')
+        err.exec()
+    else:
+        mw.fmRecalc = RecalcBox(mw)
+        mw.fmRecalc.show()
 
 def afterSyncReorder():
     if getGeneralOption('afterSync'):
