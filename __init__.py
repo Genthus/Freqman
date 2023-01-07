@@ -5,7 +5,7 @@ from aqt.qt import *
 from .preferences import prefInit
 from .progressWindow import openRecalc, afterSyncReorder
 from .window import openPrefs
-from .db import dbInit, dbClose
+from .db import dbInit
 
 
 reorder = QAction("Reorder Cards", mw)
@@ -25,7 +25,6 @@ def addonInit():
 
 mw.addonManager.setConfigAction("Freqman", openPrefs)
 
-gui_hooks.profile_will_close.append(dbClose)
 gui_hooks.profile_did_open.append(addonInit)
 gui_hooks.sync_did_finish.append(afterSyncReorder)
 

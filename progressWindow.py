@@ -4,7 +4,6 @@ from PyQt5.QtGui import *
 from aqt import mw
 from aqt.qt import *
 from .ordering import recalculate
-from .db import dbClose
 from .preferences import *
 
 class Thread(QThread):
@@ -18,7 +17,6 @@ class Thread(QThread):
     def run(self):
         # TODO make the progress bar reflect actual progress
         recalculate()
-        dbClose()
         self._signal.emit(100)
         
 
@@ -39,9 +37,6 @@ class RecalcBox(QDialog):
         self.action()
 
     def action(self):
-        # Close DBs to run in a new thread
-        dbClose()
-
         self.thread = Thread()
         self.thread._signal.connect(self.signal_accept)
         self.thread.start()
@@ -50,7 +45,6 @@ class RecalcBox(QDialog):
         self.pbar.setValue(int(msg))
         if self.pbar.value() >= 99:
             self.close()
-            dbClose()
         
 def openRecalc():
     mw.fmRecalc = RecalcBox(mw)
