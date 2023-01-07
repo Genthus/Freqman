@@ -6,7 +6,6 @@ from .preferences import prefInit
 from .progressWindow import openRecalc, afterSyncReorder
 from .window import openPrefs
 from .db import dbInit, dbClose
-from .config import configInit
 
 
 reorder = QAction("Reorder Cards", mw)
@@ -22,9 +21,7 @@ mbMenu.addAction(prefMenu)
 
 # startup
 def addonInit():
-    configInit()
     prefInit()
-    dbInit()
 
 mw.addonManager.setConfigAction("Freqman", openPrefs)
 

@@ -1,15 +1,9 @@
 import os 
 from aqt import mw
 
-configData = {}
-
-def configInit():
-    global configData
-    configData = loadDefault()
-
 def config(k):
-    if k in configData.keys():
-        return configData[k]
+    if k in loadDefault().keys():
+        return loadDefault()[k]
     print("Error getting config")
     return ""
     
