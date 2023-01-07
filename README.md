@@ -22,21 +22,21 @@ Install the addon from the [Anki addon page](https://ankiweb.net/shared/info/150
 
 Clone this repository
 
->Windows
+> Windows
 
 `git clone -main https://github.com/Genthus/Freqman %APPDATA%\Roaming\Anki2\addons21`
 
->Other
+> Other
 
 `git clone -main https://github.com/Genthus/Freqman ~/.local/share/Anki2/addons21`
 
 OR download the addon into your addons folder
 
->Windows:
-`%APPDATA%\Roaming\Anki2\addons21`
+> Windows:
+> `%APPDATA%\Roaming\Anki2\addons21`
 
->Other:
-`~/.local/share/Anki2/addons21`
+> Other:
+> `~/.local/share/Anki2/addons21`
 
 ### Setup
 
@@ -54,6 +54,8 @@ OR download the addon into your addons folder
 
 Open the preferences menu and reset you database and tags, if that doesn't work, reset your settings.
 If this fixes it you can blame it on my bad future-proofing.
+
+Apart from that you can try using the 'rebuild database' option in the tools menu.
 
 ### Other
 
@@ -73,9 +75,10 @@ The user files go into the folder user_files, which contains the databases.
 
 ### DBs
 
->user.db
+> user.db
 
 user's known terms go in here
->dict.db
+
+> dict.db
 
 imported dictionaries go in here

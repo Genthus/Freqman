@@ -1,14 +1,23 @@
+from anki.rsbackend import NotFoundError
 from aqt import mw
 from datetime import datetime
 from .preferences import *
 from .db import *
+
+def getCardFromAnki(id):
+    try:
+        card = mw.col.get_card(id)
+    except NotFoundError:
+        removeCardFromUserDB(id)
+        return None
+    return card
 
 def addCardsToDB():
     cardsToAdd = []
     for noteType in getPrefs()['filter']:
         cards = mw.col.find_cards("note:" + noteType['type'] + " -tag:" + getPrefs()['tags']['tracked'])
         for id in cards:
-            card = mw.col.get_card(id)
+            card = getCardFromAnki(id)
             if card == None:
                 removeCardFromUserDB(id)
             else:
@@ -36,7 +45,7 @@ def markCardsAsKnown():
             cleanCard(id)
     for id in known:
         if id not in dbKnown:
-            card = mw.col.get_card(id)
+            card = getCardFromAnki(id)
             card.note().add_tag(getPrefs()['tags']['known'])
             mw.col.update_note(card.note())
         else:
@@ -47,7 +56,7 @@ def markCardsAsKnown():
 def pushKnownNewCardsBack():
     known = getCardsWithKnownTerms()
     for id in known:
-        card = mw.col.get_card(id[0])
+        card = getCardFromAnki(id[0])
         if card:
             assert card, "None card"
             card.note().add_tag(getPrefs()['tags']['pushed'])
@@ -60,7 +69,7 @@ def pushKnownNewCardsBack():
 def pushBackCardsWithNoFreq():
     tracked = getCardsWithoutFreq()
     for id in tracked:
-        card = mw.col.get_card(id[0])
+        card = getCardFromAnki(id[0])
         if card:
             if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['pushed']):
                 card.due = 100000
@@ -76,7 +85,7 @@ def orderCardsInDB():
     toClean = []
     highest = getHighestFreqVal()[0] + 1
     for (id,freq) in tracked:
-        card = mw.col.get_card(id)
+        card = getCardFromAnki(id)
         if card:
             if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['pushed']):
                 if getPrefs()['dictStyle'] == 'Rank':
@@ -99,9 +108,10 @@ def cleanUpdatedCards():
                                         + " tag:" + getPrefs()['tags']['tracked']
                                         + " note:" + noteType['type'])
         for id in updated:
-            card =  mw.col.get_card(id)
+            card =  getCardFromAnki(id)
             if card != None:
                 term = card.note()[noteType['field']]
+                assert term, "id:" + str(id)
                 if term != getCard(id)[1]:
                     toClean.append(id)
             else:
@@ -116,7 +126,7 @@ def cleanCards(ids):
 
 def cleanCard(id: int):
     removeCardFromUserDB(id)
-    card = mw.col.get_card(id)
+    card = getCardFromAnki(id)
     if card != None:
         for tag in getPrefs()['tags'].values():
             card.note().remove_tag(tag)
@@ -125,7 +135,7 @@ def cleanCard(id: int):
 def cleanSorted():
     clearSortedCards()
     for id in mw.col.find_cards("tag:" + getPrefs()['tags']['sorted']):
-        card = mw.col.get_card(id)
+        card = getCardFromAnki(id)
         card.note().remove_tag(getPrefs()['tags']['sorted'])
         mw.col.update_note(card.note())
 
