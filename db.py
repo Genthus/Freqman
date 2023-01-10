@@ -133,7 +133,7 @@ def importYomichanFreqDict(path):
             for file in os.listdir(tempFolder):
                 terms = []
                 if "term_meta_bank" in file:
-                    with open(os.path.join(tempFolder,file)) as f:
+                    with open(os.path.join(tempFolder,file), encoding="utf-8") as f:
                         terms = json.load(f)
                     # very rough verification of the dictionary
                     if len(terms) <= 0:
