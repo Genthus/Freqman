@@ -15,7 +15,7 @@ def getCardFromAnki(id):
 def addCardsToDB():
     cardsToAdd = []
     for noteType in getPrefs()['filter']:
-        cards = mw.col.find_cards("note:" + noteType['type'] + " -tag:" + getPrefs()['tags']['tracked'])
+        cards = mw.col.find_cards("\"note:" + noteType['type'] + "\" -tag:" + getPrefs()['tags']['tracked'])
         for id in cards:
             card = getCardFromAnki(id)
             if card == None:
@@ -106,7 +106,7 @@ def cleanUpdatedCards():
     for noteType in getPrefs()['filter']:
         updated = mw.col.find_cards("edited:"+str(getDaysSinceLastUpdate())
                                         + " tag:" + getPrefs()['tags']['tracked']
-                                        + " note:" + noteType['type'])
+                                        + " \"note:" + noteType['type'] + "\"")
         for id in updated:
             card =  getCardFromAnki(id)
             if card != None:
