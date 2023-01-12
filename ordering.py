@@ -60,9 +60,10 @@ def pushKnownNewCardsBack():
         if card:
             assert card, "None card"
             card.note().add_tag(getPrefs()['tags']['pushed'])
-            card.due = 200000
-            mw.col.update_card(card)
-            mw.col.update_note(card.note())
+            if card.due != 200000:
+                card.due = 200000
+                mw.col.update_card(card)
+                mw.col.update_note(card.note())
         else:
             cleanCard(id)
 
@@ -72,10 +73,11 @@ def pushBackCardsWithNoFreq():
         card = getCardFromAnki(id[0])
         if card:
             if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['pushed']):
-                card.due = 100000
-                card.note().add_tag(getPrefs()['tags']['pushed'])
-                mw.col.update_note(card.note())
-                mw.col.update_card(card)
+                if card.due != 100000:
+                    card.due = 100000
+                    card.note().add_tag(getPrefs()['tags']['pushed'])
+                    mw.col.update_note(card.note())
+                    mw.col.update_card(card)
         else:
             cleanCard(id)
 
@@ -89,9 +91,11 @@ def orderCardsInDB():
         if card:
             if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['pushed']):
                 if getPrefs()['dictStyle'] == 'Rank':
-                    card.due = freq
+                    if card.due != freq:
+                        card.due = freq
                 else:
-                    card.due = highest - freq
+                    if card.due != highest - freq:
+                        card.due = highest - freq
                 card.note().add_tag(getPrefs()['tags']['sorted'])
                 mw.col.update_note(card.note())
                 mw.col.update_card(card)
