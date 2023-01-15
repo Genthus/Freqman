@@ -155,11 +155,13 @@ def importYomichanFreqDict(path):
                             termName = 'value'
                         for t in terms:
                             try:
-                                newTerms.append([t[0],t[2][termName],dictData['title']])
+                                if type(t[2][termName]) == int:
+                                    newTerms.append([t[0],t[2][termName],dictData['title']])
                             except KeyError:
                                 # JPDB schema issue
                                 try:
-                                    newTerms.append([t[0],t[2]['frequency'][termName],dictData['title']])
+                                    if type(t[2]['frequency'][termName]) == int:
+                                        newTerms.append([t[0],t[2]['frequency'][termName],dictData['title']])
                                 except KeyError:
                                     print(t)
                     cursor.executemany("INSERT INTO terms VALUES (?,?,?)",newTerms)
@@ -275,8 +277,8 @@ def getCardsWithoutFreq():
 def getHighestFreqVal():
     with closing(sqlite3.connect(getDictDB())) as connection:
         with closing(connection.cursor()) as cursor:
-            res = cursor.execute("SELECT freq FROM terms ORDER BY freq DESC LIMIT 1")
-            return res.fetchone()
+            res = cursor.execute("SELECT freq FROM terms WHERE dict = ? ORDER BY freq DESC LIMIT 1",(getPrefs()['setDict'],))
+            return int(res.fetchone()[0])
 
 def getCard(card):
     with closing(sqlite3.connect(getUserDB())) as connection:

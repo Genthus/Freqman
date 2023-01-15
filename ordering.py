@@ -79,13 +79,13 @@ def pushBackCardsWithNoFreq():
                     mw.col.update_note(card.note())
                     mw.col.update_card(card)
         else:
-            cleanCard(id)
+            cleanCard(id[0])
 
 def orderCardsInDB():
     tracked = getCardsWithFreq()
     cards = []
     toClean = []
-    highest = getHighestFreqVal()[0] + 1
+    highest = getHighestFreqVal() + 1
     for (id,freq) in tracked:
         card = getCardFromAnki(id)
         if card:
