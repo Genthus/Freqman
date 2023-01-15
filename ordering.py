@@ -105,6 +105,8 @@ def orderCardsInDB():
     cleanCards(toClean)
     addSortedCards(cards)
 
+# Gets recently updated cards from anki removes them from the DB and any hasTags
+# if they are no longer in the DB or have been changed
 def cleanUpdatedCards():
     toClean = []
     for noteType in getPrefs()['filter']:
@@ -116,7 +118,10 @@ def cleanUpdatedCards():
             if card != None:
                 term = card.note()[noteType['field']]
                 assert term, "id:" + str(id)
-                if term != getCard(id)[1]:
+                dbTerm = getCard(id)[1]
+                if dbTerm == None:
+                    toClean.append(id)
+                elif term != dbTerm:
                     toClean.append(id)
             else:
                 toClean.append(id)
