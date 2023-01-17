@@ -4,6 +4,7 @@ import os
 import shutil
 import json
 import tempfile
+import re
 from contextlib import closing
 from .preferences import getPrefs
 from .config import config
@@ -144,26 +145,34 @@ def importYomichanFreqDict(path):
                         return "dictionary format error, second value isnt freq"
 
                     newTerms = []
-                    if type(terms[0][2]) == int:
-                        for t in terms:
-                            newTerms.append([t[0],t[2],dictData['title']])
-                    elif type(terms[0][2]) == dict:
+                    if type(terms[0][2]) == dict:
                         termName = 'frequency'
                         try:
                             print(terms[0][2][termName])
                         except KeyError:
                             termName = 'value'
                         for t in terms:
+                            freq = 0
                             try:
                                 if type(t[2][termName]) == int:
-                                    newTerms.append([t[0],t[2][termName],dictData['title']])
+                                    freq = t[2][termName]
                             except KeyError:
                                 # JPDB schema issue
                                 try:
                                     if type(t[2]['frequency'][termName]) == int:
-                                        newTerms.append([t[0],t[2]['frequency'][termName],dictData['title']])
+                                        freq = t[2]['frequency'][termName]
                                 except KeyError:
                                     print(t)
+                            match = re.match(r"^[0-9]*$", str(freq))
+                            if match != None:
+                                newTerms.append([t[0],int(freq),dictData['title']])
+
+                    elif type(terms[0][2]) == int:
+                        for t in terms:
+                            freq = t[2]
+                            match = re.match(r"^[0-9]*$", str(freq))
+                            if match != None:
+                                newTerms.append([t[0],int(freq),dictData['title']])
                     cursor.executemany("INSERT INTO terms VALUES (?,?,?)",newTerms)
                     termcount += len(terms)
             
