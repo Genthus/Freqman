@@ -254,12 +254,15 @@ def getCardsWithFreq():
         with closing(connection.cursor()) as cursor:
             cursor.execute("ATTACH DATABASE ? AS source",(config('dictDB'),))
             res = cursor.execute("""
-            SELECT card, freq
+            SELECT card, min_freq
             FROM cards 
-            INNER JOIN source.terms
-            ON cards.term = source.terms.term
-            WHERE dict = ?
-            AND card NOT IN (SELECT card FROM known)
+            INNER JOIN (SELECT term, dict, MIN(freq) as min_freq 
+                        FROM source.terms
+                        WHERE dict = ?
+                        GROUP BY term
+            ) source
+            ON cards.term = source.term
+            WHERE card NOT IN (SELECT card FROM known)
             AND card NOT IN (SELECT card FROM sorted)
             """,(getPrefs()['setDict'],))
             return res.fetchall()
