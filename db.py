@@ -274,15 +274,11 @@ def getCardsWithoutFreq():
             res = cursor.execute("""
             SELECT card
             FROM cards 
-            WHERE card NOT IN (
-                SELECT card
-                FROM cards
-                LEFT JOIN source.terms
-                ON cards.term = source.terms.term
+            WHERE term NOT IN (
+                SELECT term
+                FROM source.terms
                 WHERE dict = ?
             )
-            AND card NOT IN (SELECT card FROM known)
-            AND card NOT IN (SELECT card FROM sorted)
             """,(getPrefs()['setDict'],))
             return res.fetchall()
 

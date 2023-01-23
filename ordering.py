@@ -1,6 +1,7 @@
 from anki.rsbackend import NotFoundError
 from aqt import mw
 from datetime import datetime
+import re
 from .preferences import *
 from .db import *
 
@@ -14,6 +15,8 @@ def getCardFromAnki(id):
 
 def addCardsToDB():
     cardsToAdd = []
+    tag_re = re.compile(r'(<!--.*?-->|<[^>]*>)')
+    ignoreTags = getGeneralOption("ignoreHTML")
     for noteType in getPrefs()['filter']:
         cards = mw.col.find_cards("\"note:" + noteType['type'] + "\" -tag:" + getPrefs()['tags']['tracked'])
         for id in cards:
@@ -29,7 +32,10 @@ def addCardsToDB():
                 if hasTags:
                     assert noteType['field'] in note.keys(), "Failed to find field %s in note type with fields %s"%noteType['field']%note.keys()
                     expression = note[noteType['field']]
+                    if ignoreTags:
+                        expression = tag_re.sub('', expression)
                     cardsToAdd.append([id,expression])
+                    cleanCard(id)
                     note.add_tag(getPrefs()['tags']['tracked'])
                     mw.col.update_note(note)
     addCardsToUserDB(cardsToAdd)
@@ -59,11 +65,10 @@ def pushKnownNewCardsBack():
         card = getCardFromAnki(id[0])
         if card:
             assert card, "None card"
-            card.note().add_tag(getPrefs()['tags']['pushed'])
-            if card.due != 200000:
-                card.due = 200000
-                mw.col.update_card(card)
-                mw.col.update_note(card.note())
+            card.note().add_tag(getPrefs()['tags']['newKnown'])
+            card.due = 200000
+            mw.col.update_card(card)
+            mw.col.update_note(card.note())
         else:
             cleanCard(id)
 
@@ -72,12 +77,11 @@ def pushBackCardsWithNoFreq():
     for id in tracked:
         card = getCardFromAnki(id[0])
         if card:
-            if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['pushed']):
-                if card.due != 100000:
-                    card.due = 100000
-                    card.note().add_tag(getPrefs()['tags']['pushed'])
-                    mw.col.update_note(card.note())
-                    mw.col.update_card(card)
+            if card.type == 0 and not card.note().has_tag(getPrefs()['tags']['sorted']):
+                card.due = 500000
+                card.note().add_tag(getPrefs()['tags']['pushed'])
+                mw.col.update_note(card.note())
+                mw.col.update_card(card)
         else:
             cleanCard(id[0])
 
@@ -118,10 +122,11 @@ def cleanUpdatedCards():
             if card != None:
                 term = card.note()[noteType['field']]
                 assert term, "id:" + str(id)
-                dbTerm = getCard(id)[1]
-                if dbTerm == None:
-                    toClean.append(id)
-                elif term != dbTerm:
+                try: 
+                    dbTerm = getCard(id)[1]
+                    if term != dbTerm:
+                            toClean.append(id)
+                except TypeError:
                     toClean.append(id)
             else:
                 toClean.append(id)
@@ -143,7 +148,7 @@ def cleanCard(id: int):
 
 def cleanSorted():
     clearSortedCards()
-    for id in mw.col.find_cards("tag:" + getPrefs()['tags']['sorted']):
+    for id in mw.col.find_cards("tag:" + getPrefs()['tags']['sorted'] + " -is:new"):
         card = getCardFromAnki(id)
         card.note().remove_tag(getPrefs()['tags']['sorted'])
         mw.col.update_note(card.note())

@@ -10,7 +10,8 @@
         "known": "fmKnown",
         "sorted": "fmSorted",
         "tracked": "fmTracked",
-        "pushed": "fmPushed"
+        "pushed": "fmPushed",
+        "newKnown": "fmNewKnown"
     },
     "general": {
         "afterSync": { "text": "Run reorder after sync", "value": false },
@@ -18,6 +19,7 @@
         "refresh": {
             "text": "Schedule refresh on next recalculation",
             "value": true
-        }
+        },
+        "ignoreHTML": { "text": "Ignore HTML tags in fields", "value": true }
     }
 }
