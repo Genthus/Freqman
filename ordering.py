@@ -70,7 +70,7 @@ def pushKnownNewCardsBack():
             mw.col.update_card(card)
             mw.col.update_note(card.note())
         else:
-            cleanCard(id)
+            cleanCard(id[0])
 
 def pushBackCardsWithNoFreq():
     tracked = getCardsWithoutFreq()
